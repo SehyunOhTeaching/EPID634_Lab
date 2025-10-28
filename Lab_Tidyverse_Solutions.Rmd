@@ -1,0 +1,534 @@
+---
+title: "Data Wrangling with Tidyverse - Solutions"
+author: "Instructor"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Setup
+
+```{r packages}
+library(tidyverse)
+library(lubridate)
+```
+
+# Create Sample Dataset
+
+```{r create-data}
+set.seed(123)
+
+sales_data <- tibble(
+  order_id = 1:100,
+  customer_id = sample(1:20, 100, replace = TRUE),
+  product = sample(c('Laptop', 'Phone', 'Tablet', 'Monitor', 'Keyboard'),
+                   100, replace = TRUE),
+  quantity = sample(1:5, 100, replace = TRUE),
+  price = c(1200, 800, 500, 300, 50)[match(product,
+                c('Laptop', 'Phone', 'Tablet', 'Monitor', 'Keyboard'))],
+  date = sample(seq(as.Date('2024-01-01'), as.Date('2024-12-31'), by='day'),
+                100, replace = TRUE),
+  region = sample(c('North', 'South', 'East', 'West'), 100, replace = TRUE)
+)
+
+customers <- tibble(
+  customer_id = 1:25,
+  customer_name = paste('Customer', 1:25),
+  segment = sample(c('Enterprise', 'SMB', 'Startup'), 25, replace = TRUE),
+  signup_date = sample(seq(as.Date('2023-01-01'),
+                           as.Date('2024-12-31'), by='day'),
+                       25, replace = TRUE)
+)
+```
+
+---
+
+# PART 2: Selecting and Filtering Data - Solutions
+
+## Practice Task 1 Solution
+
+**Task:** Select only the columns related to product information
+
+```{r solution-2-1}
+# Method 1: Explicit column names
+product_info <- sales_data %>%
+  select(product, quantity, price)
+
+# Method 2: Using range
+product_info <- sales_data %>%
+  select(product:price)
+
+head(product_info)
+```
+
+## Practice Task 2.1 Solution
+
+**Task:** Filter for orders with quantity > 2 in the North region
+
+```{r solution-2-2-1}
+north_large_orders <- sales_data %>%
+  filter(quantity > 2 & region == 'North')
+
+# Alternative using comma (which means AND)
+north_large_orders <- sales_data %>%
+  filter(quantity > 2, region == 'North')
+
+nrow(north_large_orders)
+head(north_large_orders)
+```
+
+## Practice Task 2.2 Solution
+
+**Task:** Find all Laptop orders with total value > 2000
+
+```{r solution-2-2-2}
+# Method 1: Calculate total in filter
+high_value_laptops <- sales_data %>%
+  filter(product == 'Laptop' & (price * quantity) > 2000)
+
+# Method 2: Create column first, then filter
+high_value_laptops <- sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  filter(product == 'Laptop', total_value > 2000)
+
+high_value_laptops %>%
+  arrange(desc(total_value))
+```
+
+## Practice Task 3 Solution
+
+**Task:** Sort by date (newest first), then by total value (highest first)
+
+```{r solution-2-3}
+sorted_sales <- sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  arrange(desc(date), desc(total_value))
+
+head(sorted_sales, 10)
+```
+
+---
+
+# PART 3: Creating and Transforming Columns - Solutions
+
+## Practice Task 3.1 Solution
+
+**Task:** Create a column for tax (8% of total value)
+
+```{r solution-3-1}
+sales_with_tax <- sales_data %>%
+  mutate(
+    total_value = price * quantity,
+    tax = total_value * 0.08
+  )
+
+sales_with_tax %>%
+  select(order_id, product, total_value, tax) %>%
+  head()
+```
+
+## Practice Task 3.2 Solution
+
+**Task:** Create priority column (High > 1500, Medium > 750, else Low)
+
+```{r solution-3-2}
+sales_with_priority <- sales_data %>%
+  mutate(
+    total_value = price * quantity,
+    priority = case_when(
+      total_value > 1500 ~ 'High',
+      total_value > 750 ~ 'Medium',
+      TRUE ~ 'Low'
+    )
+  )
+
+sales_with_priority %>%
+  count(priority)
+```
+
+## Practice Task 3.3 Solution
+
+**Task:** Extract month and quarter from the date column
+
+```{r solution-3-3}
+sales_with_time <- sales_data %>%
+  mutate(
+    month = month(date, label = TRUE),
+    month_num = month(date),
+    quarter = quarter(date),
+    quarter_label = paste0('Q', quarter)
+  )
+
+sales_with_time %>%
+  select(date, month, month_num, quarter, quarter_label) %>%
+  head()
+```
+
+---
+
+# PART 4: Grouping and Summarizing Data - Solutions
+
+## Practice Task 4.1 Solution
+
+**Task:** Calculate total revenue by region
+
+```{r solution-4-1}
+revenue_by_region <- sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(region) %>%
+  summarise(
+    total_revenue = sum(total_value),
+    num_orders = n(),
+    avg_order_value = mean(total_value)
+  ) %>%
+  arrange(desc(total_revenue))
+
+print(revenue_by_region)
+```
+
+## Practice Task 4.2 Solution
+
+**Task:** Find product with highest average order value per region
+
+```{r solution-4-2}
+top_product_per_region <- sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(region, product) %>%
+  summarise(
+    avg_order_value = mean(total_value),
+    num_orders = n(),
+    .groups = 'drop'
+  ) %>%
+  group_by(region) %>%
+  slice_max(avg_order_value, n = 1) %>%
+  ungroup()
+
+print(top_product_per_region)
+```
+
+## Practice Task 4.3 Solution
+
+**Task:** Calculate monthly sales trends
+
+```{r solution-4-3}
+monthly_trends <- sales_data %>%
+  mutate(
+    total_value = price * quantity,
+    month = floor_date(date, 'month')
+  ) %>%
+  group_by(month) %>%
+  summarise(
+    total_revenue = sum(total_value),
+    num_orders = n(),
+    avg_order_value = mean(total_value)
+  ) %>%
+  arrange(month) %>%
+  mutate(
+    revenue_growth = (total_revenue - lag(total_revenue)) / lag(total_revenue) * 100
+  )
+
+print(monthly_trends)
+```
+
+## Practice Task 4.4 Solution
+
+**Task:** Calculate deviation from regional average price
+
+```{r solution-4-4}
+sales_with_deviation <- sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(region) %>%
+  mutate(
+    regional_avg = mean(total_value),
+    deviation = total_value - regional_avg,
+    pct_deviation = (deviation / regional_avg) * 100
+  ) %>%
+  ungroup()
+
+# View orders with largest deviations
+sales_with_deviation %>%
+  select(order_id, region, product, total_value, 
+         regional_avg, deviation, pct_deviation) %>%
+  arrange(desc(abs(pct_deviation))) %>%
+  head(10)
+```
+
+---
+
+# PART 5: Reshaping Data - Solutions
+
+## Practice Task 5 Solution
+
+**Task:** Reshape to show products as rows and regions as columns
+
+```{r solution-5}
+# Create summary data first
+product_region_summary <- sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(product, region) %>%
+  summarise(total_sales = sum(total_value), .groups = 'drop')
+
+# Pivot to wide format
+product_region_wide <- product_region_summary %>%
+  pivot_wider(
+    names_from = region,
+    values_from = total_sales,
+    values_fill = 0
+  ) %>%
+  mutate(Total = East + North + South + West) %>%
+  arrange(desc(Total))
+
+print(product_region_wide)
+```
+
+## Practice Task 5.3 Solution
+
+**Task:** Create product_code by combining product and region
+
+```{r solution-5-3}
+sales_with_code <- sales_data %>%
+  unite(product_code,
+        product, region,
+        sep = '-',
+        remove = FALSE)  # Keep original columns
+
+sales_with_code %>%
+  select(order_id, product_code, product, region, price) %>%
+  head(10)
+
+# Count by product code
+sales_with_code %>%
+  count(product_code, sort = TRUE)
+```
+
+---
+
+# PART 6: Joining Multiple Datasets - Solutions
+
+## Practice Task 6.1 Solution
+
+**Task:** Calculate average order value by customer segment
+
+```{r solution-6-1}
+segment_analysis <- sales_data %>%
+  left_join(customers, by = 'customer_id') %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(segment) %>%
+  summarise(
+    num_customers = n_distinct(customer_id),
+    num_orders = n(),
+    avg_order_value = mean(total_value),
+    total_revenue = sum(total_value)
+  ) %>%
+  arrange(desc(avg_order_value))
+
+print(segment_analysis)
+```
+
+## Practice Task 6.2 Solution
+
+**Task:** Find customers who have never made a purchase
+
+```{r solution-6-2}
+# Use anti_join to find customers not in sales_data
+inactive_customers <- customers %>%
+  anti_join(sales_data, by = 'customer_id')
+
+cat('Number of inactive customers:', nrow(inactive_customers), '\n')
+print(inactive_customers)
+```
+
+## Practice Task 6.3 Solution
+
+**Task:** Identify which segment generates the most revenue
+
+```{r solution-6-3}
+segment_revenue <- sales_data %>%
+  left_join(customers, by = 'customer_id') %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(segment) %>%
+  summarise(
+    total_revenue = sum(total_value),
+    num_orders = n(),
+    num_customers = n_distinct(customer_id)
+  ) %>%
+  mutate(
+    pct_of_total = total_revenue / sum(total_revenue) * 100,
+    revenue_per_customer = total_revenue / num_customers
+  ) %>%
+  arrange(desc(total_revenue))
+
+print(segment_revenue)
+
+# Identify top segment
+top_segment <- segment_revenue %>%
+  slice_max(total_revenue, n = 1)
+
+cat('\nTop revenue segment:', top_segment$segment, '\n')
+cat('Total revenue: $', format(top_segment$total_revenue, big.mark=','), '\n')
+```
+
+---
+
+# PART 7: Handling Missing Data - Solutions
+
+## Practice Task 7 Solution
+
+**Task:** Identify products with most missing prices and impute with product-specific medians
+
+```{r solution-7}
+# Create data with missing values
+data_with_na <- sales_data %>%
+  mutate(
+    price = if_else(row_number() %in% sample(1:100, 10), NA_real_, price),
+    quantity = if_else(row_number() %in% sample(1:100, 8), NA_real_, as.numeric(quantity))
+  )
+
+# Step 1: Count missing values by product
+missing_by_product <- data_with_na %>%
+  group_by(product) %>%
+  summarise(
+    total_orders = n(),
+    missing_prices = sum(is.na(price)),
+    pct_missing = missing_prices / total_orders * 100
+  ) %>%
+  arrange(desc(missing_prices))
+
+print(missing_by_product)
+
+# Step 2: Calculate product-specific medians
+product_medians <- data_with_na %>%
+  group_by(product) %>%
+  summarise(median_price = median(price, na.rm = TRUE))
+
+# Step 3: Impute missing values
+data_imputed <- data_with_na %>%
+  left_join(product_medians, by = 'product') %>%
+  mutate(
+    price_original = price,
+    price = if_else(is.na(price), median_price, price),
+    imputed = is.na(price_original)
+  ) %>%
+  select(-median_price)
+
+# Step 4: Verify imputation
+cat('Original missing prices:', sum(is.na(data_with_na$price)), '\n')
+cat('After imputation:', sum(is.na(data_imputed$price)), '\n')
+cat('Number of values imputed:', sum(data_imputed$imputed), '\n')
+
+# View some imputed records
+data_imputed %>%
+  filter(imputed) %>%
+  select(order_id, product, price_original, price, imputed) %>%
+  head(10)
+```
+
+---
+
+# COMPREHENSIVE EXERCISE - Complete Solution
+
+```{r comprehensive-solution}
+# Complete Analysis Pipeline
+library(lubridate)
+
+# Step 1: Load and merge data
+final_analysis <- sales_data %>%
+  left_join(customers, by = 'customer_id') %>%
+  
+  # Step 2: Create calculated columns
+  mutate(
+    total_value = price * quantity,
+    tax = total_value * 0.08,
+    final_price = total_value + tax,
+    month = floor_date(date, 'month'),
+    quarter = quarter(date)
+  ) %>%
+  
+  # Step 3: Handle missing values (if any)
+  drop_na(price, quantity)
+
+# Step 4: Summary statistics by product and region
+product_region_summary <- final_analysis %>%
+  group_by(product, region) %>%
+  summarise(
+    total_orders = n(),
+    total_revenue = sum(final_price),
+    avg_order_value = mean(final_price),
+    total_units = sum(quantity),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(total_revenue))
+
+# Step 5: Top 5 customers by total purchase value
+top_customers <- final_analysis %>%
+  group_by(customer_id, customer_name, segment) %>%
+  summarise(
+    total_spent = sum(final_price),
+    num_orders = n(),
+    avg_order = mean(final_price),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(total_spent)) %>%
+  head(5)
+
+# Step 6: Monthly trend analysis
+monthly_trends <- final_analysis %>%
+  group_by(month) %>%
+  summarise(
+    total_revenue = sum(final_price),
+    num_orders = n()
+  ) %>%
+  arrange(month) %>%
+  mutate(
+    revenue_growth = (total_revenue - lag(total_revenue)) / lag(total_revenue) * 100,
+    month_label = format(month, '%b %Y')
+  )
+
+# Step 7: Reshape data - products as rows, months as columns
+revenue_matrix <- final_analysis %>%
+  mutate(month_label = format(month, '%b')) %>%
+  group_by(product, month_label) %>%
+  summarise(revenue = sum(final_price), .groups = 'drop') %>%
+  pivot_wider(
+    names_from = month_label,
+    values_from = revenue,
+    values_fill = 0
+  )
+
+# Step 8: Export results
+write_csv(product_region_summary, 'product_region_summary.csv')
+write_csv(top_customers, 'top_customers.csv')
+write_csv(monthly_trends, 'monthly_trends.csv')
+write_csv(revenue_matrix, 'revenue_matrix.csv')
+
+# Display key insights
+cat('=== ANALYSIS COMPLETE ===\n\n')
+cat('Total Orders:', nrow(final_analysis), '\n')
+cat('Total Revenue: $', format(sum(final_analysis$final_price), big.mark=','), '\n\n')
+
+cat('Top Product by Revenue:\n')
+print(product_region_summary %>% head(1))
+
+cat('\nTop 5 Customers:\n')
+print(top_customers)
+
+cat('\nMonthly Trends (last 3 months):\n')
+print(monthly_trends %>% tail(3))
+```
+
+---
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```

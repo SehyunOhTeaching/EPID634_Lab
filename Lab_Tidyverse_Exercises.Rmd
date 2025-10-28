@@ -1,0 +1,519 @@
+---
+title: "Data Wrangling with Tidyverse - Laboratory Exercises"
+author: "Student Name"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Setup
+
+Install and load required packages:
+
+```{r packages}
+# Install tidyverse if not already installed
+# install.packages("tidyverse")
+
+# Load libraries
+library(tidyverse)
+library(lubridate)
+```
+
+# Create Sample Dataset
+
+```{r create-data}
+# Set seed for reproducibility
+set.seed(123)
+
+# Create sample sales dataset
+sales_data <- tibble(
+  order_id = 1:100,
+  customer_id = sample(1:20, 100, replace = TRUE),
+  product = sample(c('Laptop', 'Phone', 'Tablet', 'Monitor', 'Keyboard'),
+                   100, replace = TRUE),
+  quantity = sample(1:5, 100, replace = TRUE),
+  price = c(1200, 800, 500, 300, 50)[match(product,
+                c('Laptop', 'Phone', 'Tablet', 'Monitor', 'Keyboard'))],
+  date = sample(seq(as.Date('2024-01-01'), as.Date('2024-12-31'), by='day'),
+                100, replace = TRUE),
+  region = sample(c('North', 'South', 'East', 'West'), 100, replace = TRUE)
+)
+
+# Create customer dataset
+customers <- tibble(
+  customer_id = 1:25,
+  customer_name = paste('Customer', 1:25),
+  segment = sample(c('Enterprise', 'SMB', 'Startup'), 25, replace = TRUE),
+  signup_date = sample(seq(as.Date('2023-01-01'),
+                           as.Date('2024-12-31'), by='day'),
+                       25, replace = TRUE)
+)
+
+# View the data
+glimpse(sales_data)
+head(sales_data)
+```
+
+---
+
+# PART 1: Data Import and Basic Operations
+
+## Exercise 1.1: Exploring Data
+
+```{r exercise-1-1}
+# Check dimensions
+dim(sales_data)
+nrow(sales_data)
+ncol(sales_data)
+
+# Check data types
+glimpse(sales_data)
+str(sales_data)
+
+# Export to CSV
+write_csv(sales_data, 'sales_data.csv')
+
+# Read back in
+sales_data_imported <- read_csv('sales_data.csv')
+```
+
+---
+
+# PART 2: Selecting and Filtering Data
+
+## Exercise 2.1: Column Selection
+
+```{r exercise-2-1}
+# Select specific columns
+sales_data %>%
+  select(order_id, product, quantity, price)
+
+# Select range of columns
+sales_data %>%
+  select(order_id:quantity)
+
+# Exclude specific columns
+sales_data %>%
+  select(-customer_id, -date)
+
+# Select columns by pattern
+sales_data %>%
+  select(starts_with('order'))
+
+# Rename while selecting
+sales_data %>%
+  select(order = order_id, item = product, qty = quantity)
+```
+
+**Practice Task 1:** Select only the columns related to product information (product, quantity, price)
+
+```{r practice-2-1}
+# Your code here:
+
+```
+
+## Exercise 2.2: Row Filtering
+
+```{r exercise-2-2}
+# Filter by single condition
+sales_data %>%
+  filter(product == 'Laptop')
+
+# Filter by multiple conditions (AND)
+sales_data %>%
+  filter(product == 'Laptop' & quantity >= 3)
+
+# Filter by multiple conditions (OR)
+sales_data %>%
+  filter(product == 'Laptop' | product == 'Phone')
+
+# Filter using %in% for multiple values
+sales_data %>%
+  filter(product %in% c('Laptop', 'Phone', 'Tablet'))
+
+# Filter by numeric range
+sales_data %>%
+  filter(between(price, 300, 800))
+```
+
+**Practice Task 2.1:** Filter for orders with quantity > 2 in the North region
+
+```{r practice-2-2-1}
+# Your code here:
+
+```
+
+**Practice Task 2.2:** Find all Laptop orders with total value (price * quantity) > 2000
+
+```{r practice-2-2-2}
+# Your code here:
+
+```
+
+## Exercise 2.3: Arranging Data
+
+```{r exercise-2-3}
+# Sort by single column (ascending)
+sales_data %>%
+  arrange(price)
+
+# Sort descending
+sales_data %>%
+  arrange(desc(price))
+
+# Sort by multiple columns
+sales_data %>%
+  arrange(region, desc(price))
+```
+
+**Practice Task 3:** Sort by date (newest first), then by total value (highest first)
+
+```{r practice-2-3}
+# Your code here:
+
+```
+
+---
+
+# PART 3: Creating and Transforming Columns
+
+## Exercise 3.1: Creating New Variables
+
+```{r exercise-3-1}
+# Create a single new column
+sales_data %>%
+  mutate(total_value = price * quantity)
+
+# Create multiple columns at once
+sales_data %>%
+  mutate(
+    total_value = price * quantity,
+    discount = total_value * 0.1,
+    final_price = total_value - discount
+  )
+
+# Conditional mutations with case_when
+sales_data %>%
+  mutate(
+    total_value = price * quantity,
+    order_size = case_when(
+      total_value < 500 ~ 'Small',
+      total_value < 2000 ~ 'Medium',
+      TRUE ~ 'Large'
+    )
+  )
+
+# Conditional with if_else
+sales_data %>%
+  mutate(
+    high_value = if_else(price >= 500, 'Yes', 'No')
+  )
+```
+
+**Practice Task 3.1:** Create a column for tax (8% of total value)
+
+```{r practice-3-1}
+# Your code here:
+
+```
+
+**Practice Task 3.2:** Create priority column: High if total value > 1500, Medium if > 750, else Low
+
+```{r practice-3-2}
+# Your code here:
+
+```
+
+**Practice Task 3.3:** Extract month and quarter from the date column
+
+```{r practice-3-3}
+# Your code here:
+
+```
+
+---
+
+# PART 4: Grouping and Summarizing Data
+
+## Exercise 4.1: Aggregate Calculations
+
+```{r exercise-4-1}
+# Simple summary
+sales_data %>%
+  summarise(
+    total_orders = n(),
+    avg_price = mean(price),
+    max_quantity = max(quantity)
+  )
+
+# Group by single variable
+sales_data %>%
+  group_by(product) %>%
+  summarise(
+    total_orders = n(),
+    total_quantity = sum(quantity),
+    avg_price = mean(price)
+  )
+
+# Group by multiple variables
+sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(region, product) %>%
+  summarise(
+    orders = n(),
+    total_revenue = sum(total_value),
+    avg_revenue = mean(total_value)
+  ) %>%
+  arrange(desc(total_revenue))
+```
+
+**Practice Task 4.1:** Calculate total revenue by region
+
+```{r practice-4-1}
+# Your code here:
+
+```
+
+**Practice Task 4.2:** Find the product with highest average order value per region
+
+```{r practice-4-2}
+# Your code here:
+
+```
+
+**Practice Task 4.3:** Calculate monthly sales trends
+
+```{r practice-4-3}
+# Your code here:
+
+```
+
+## Exercise 4.2: Group-wise Mutations
+
+```{r exercise-4-2}
+# Calculate percentage of total by group
+sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(product) %>%
+  mutate(
+    product_total = sum(total_value),
+    pct_of_product = total_value / product_total * 100
+  ) %>%
+  ungroup()
+
+# Rank within groups
+sales_data %>%
+  mutate(total_value = price * quantity) %>%
+  group_by(region) %>%
+  mutate(rank = row_number(desc(total_value))) %>%
+  filter(rank <= 3) %>%
+  ungroup()
+```
+
+**Practice Task 4.4:** Calculate deviation from regional average price
+
+```{r practice-4-4}
+# Your code here:
+
+```
+
+---
+
+# PART 5: Reshaping Data with Tidyr
+
+## Exercise 5.1: Wide to Long Format
+
+```{r exercise-5-1}
+# Create sample wide data
+sales_wide <- tibble(
+  region = c('North', 'South', 'East', 'West'),
+  Q1 = c(1000, 1200, 950, 1100),
+  Q2 = c(1100, 1300, 1050, 1200),
+  Q3 = c(1250, 1400, 1100, 1300),
+  Q4 = c(1350, 1500, 1200, 1400)
+)
+
+# Convert to long format
+sales_long <- sales_wide %>%
+  pivot_longer(
+    cols = Q1:Q4,
+    names_to = 'quarter',
+    values_to = 'sales'
+  )
+
+print(sales_long)
+```
+
+## Exercise 5.2: Long to Wide Format
+
+```{r exercise-5-2}
+# Convert back to wide format
+sales_wide_again <- sales_long %>%
+  pivot_wider(
+    names_from = quarter,
+    values_from = sales
+  )
+
+print(sales_wide_again)
+```
+
+**Practice Task 5:** Reshape sales_data to show products as rows and regions as columns
+
+```{r practice-5}
+# Your code here:
+
+```
+
+## Exercise 5.3: Separate and Unite
+
+```{r exercise-5-3}
+# Create data with combined column
+customer_data <- tibble(
+  id = 1:5,
+  name = c('John_Doe', 'Jane_Smith', 'Bob_Johnson',
+           'Alice_Williams', 'Charlie_Brown')
+)
+
+# Separate into two columns
+customer_data %>%
+  separate(name,
+           into = c('first_name', 'last_name'),
+           sep = '_')
+
+# Unite columns back together
+customer_data %>%
+  separate(name, into = c('first_name', 'last_name'), sep = '_') %>%
+  unite(full_name, first_name, last_name, sep = ' ')
+```
+
+**Practice Task 5.3:** Create product_code by combining product and region with hyphen
+
+```{r practice-5-3}
+# Your code here:
+
+```
+
+---
+
+# PART 6: Joining Multiple Datasets
+
+## Exercise 6.1: Basic Joins
+
+```{r exercise-6-1}
+# LEFT JOIN - keep all rows from left table
+sales_with_customer <- sales_data %>%
+  left_join(customers, by = 'customer_id')
+
+# INNER JOIN - keep only matching rows
+sales_inner <- sales_data %>%
+  inner_join(customers, by = 'customer_id')
+
+# FULL JOIN - keep all rows from both tables
+all_data <- sales_data %>%
+  full_join(customers, by = 'customer_id')
+
+# Compare row counts
+nrow(sales_data)
+nrow(sales_with_customer)
+nrow(sales_inner)
+nrow(all_data)
+```
+
+**Practice Task 6.1:** Calculate average order value by customer segment
+
+```{r practice-6-1}
+# Your code here:
+
+```
+
+**Practice Task 6.2:** Find customers who have never made a purchase (use anti_join)
+
+```{r practice-6-2}
+# Your code here:
+
+```
+
+**Practice Task 6.3:** Identify which segment generates the most revenue
+
+```{r practice-6-3}
+# Your code here:
+
+```
+
+---
+
+# PART 7: Handling Missing Data
+
+## Exercise 7.1: Working with NAs
+
+```{r exercise-7-1}
+# Create data with missing values
+data_with_na <- sales_data %>%
+  mutate(
+    price = if_else(row_number() %in% sample(1:100, 10), NA_real_, price),
+    quantity = if_else(row_number() %in% sample(1:100, 8), NA_real_, as.numeric(quantity))
+  )
+
+# Check for missing values
+data_with_na %>%
+  summarise(across(everything(), ~sum(is.na(.))))
+
+# Remove rows with any NA
+data_with_na %>%
+  drop_na()
+
+# Remove rows with NA in specific columns
+data_with_na %>%
+  drop_na(price, quantity)
+
+# Replace NA with specific value
+data_with_na %>%
+  mutate(
+    price = replace_na(price, median(price, na.rm = TRUE)),
+    quantity = replace_na(quantity, mean(quantity, na.rm = TRUE))
+  )
+```
+
+**Practice Task 7:** Identify products with most missing prices and impute with product-specific medians
+
+```{r practice-7}
+# Your code here:
+
+```
+
+---
+
+# COMPREHENSIVE EXERCISE
+
+Create a complete analysis pipeline that:
+
+1. Loads and merges sales_data with customer information
+2. Creates calculated columns for total value, tax, and final price
+3. Cleans the data by handling missing values
+4. Calculates summary statistics by product and region
+5. Identifies top 5 customers by total purchase value
+6. Creates monthly trend analysis
+7. Reshapes data to show products as rows and months as columns
+8. Exports final results
+
+```{r comprehensive}
+# Your complete analysis pipeline here:
+
+```
+
+---
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
