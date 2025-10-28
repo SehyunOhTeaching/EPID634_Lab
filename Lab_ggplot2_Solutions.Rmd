@@ -1,0 +1,480 @@
+---
+title: "Data Visualization with ggplot2 - Solutions"
+author: "Instructor"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 6)
+```
+
+# Setup
+
+```{r packages}
+library(tidyverse)
+library(scales)
+library(patchwork)
+library(lubridate)
+```
+
+# Create Sample Dataset
+
+```{r create-data}
+set.seed(123)
+
+sales_data <- tibble(
+  date = seq(as.Date('2024-01-01'), as.Date('2024-12-31'), by='day'),
+  product = sample(c('Laptop', 'Phone', 'Tablet', 'Monitor', 'Keyboard'),
+                   366, replace = TRUE),
+  region = sample(c('North', 'South', 'East', 'West'),
+                  366, replace = TRUE),
+  sales = round(rnorm(366, mean = 50000, sd = 15000)),
+  units = sample(10:100, 366, replace = TRUE),
+  profit_margin = runif(366, 0.1, 0.4)
+) %>%
+  mutate(
+    profit = sales * profit_margin,
+    month = month(date, label = TRUE),
+    quarter = quarter(date),
+    day_of_week = wday(date, label = TRUE)
+  )
+```
+
+---
+
+# PART 1: Basic Plot Types - Solutions
+
+## Practice Task 1 Solution
+
+**Task:** Scatter plot showing units vs profit margin, colored by product
+
+```{r solution-1}
+ggplot(sales_data, aes(x = units, y = profit_margin, color = product)) +
+  geom_point(size = 3, alpha = 0.6) +
+  labs(
+    title = 'Relationship Between Units Sold and Profit Margin',
+    x = 'Units Sold',
+    y = 'Profit Margin',
+    color = 'Product Type'
+  ) +
+  theme_minimal()
+```
+
+**Explanation:** This scatter plot reveals patterns between units sold and profit margins across product types. Alpha transparency handles overlapping points effectively.
+
+## Practice Task 2 Solution
+
+**Task:** Line plot showing monthly sales by product with lines and points
+
+```{r solution-2}
+# Prepare monthly data
+monthly_product_sales <- sales_data %>%
+  mutate(month_date = floor_date(date, 'month')) %>%
+  group_by(month_date, product) %>%
+  summarise(total_sales = sum(sales), .groups = 'drop')
+
+# Create plot
+ggplot(monthly_product_sales, aes(x = month_date, y = total_sales,
+                                   color = product, group = product)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = dollar_format()) +
+  scale_x_date(date_breaks = '1 month', date_labels = '%b') +
+  labs(
+    title = 'Monthly Sales Trends by Product',
+    x = 'Month',
+    y = 'Total Sales',
+    color = 'Product'
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+**Explanation:** Combining geom_line() and geom_point() creates clear time series visualization. Date formatting and dollar format improve readability.
+
+## Practice Task 3 Solution
+
+**Task:** Stacked bar chart of sales by region, divided by product
+
+```{r solution-3}
+# Prepare data
+region_product_sales <- sales_data %>%
+  group_by(region, product) %>%
+  summarise(total_sales = sum(sales), .groups = 'drop')
+
+# Create stacked bar chart
+ggplot(region_product_sales, aes(x = region, y = total_sales, fill = product)) +
+  geom_col(position = 'stack') +
+  scale_y_continuous(labels = dollar_format()) +
+  scale_fill_brewer(palette = 'Set2') +
+  labs(
+    title = 'Total Sales by Region and Product',
+    x = 'Region',
+    y = 'Total Sales',
+    fill = 'Product'
+  ) +
+  theme_minimal()
+```
+
+**Explanation:** Stacked bars show both total values and composition. Position = 'stack' stacks bars, while position = 'fill' would create proportional bars.
+
+## Practice Task 4 Solution
+
+**Task:** Histogram of profit margins, faceted by region
+
+```{r solution-4}
+ggplot(sales_data, aes(x = profit_margin)) +
+  geom_histogram(bins = 30, fill = 'steelblue',
+                 color = 'white', alpha = 0.8) +
+  facet_wrap(~ region, ncol = 2) +
+  scale_x_continuous(labels = percent_format()) +
+  labs(
+    title = 'Distribution of Profit Margins by Region',
+    x = 'Profit Margin',
+    y = 'Count'
+  ) +
+  theme_minimal() +
+  theme(
+    strip.background = element_rect(fill = 'lightgray'),
+    strip.text = element_text(face = 'bold')
+  )
+```
+
+**Explanation:** Faceting allows comparison of distributions across regions. White bin edges make bars distinguishable.
+
+---
+
+# PART 2: Aesthetic Mappings - Solutions
+
+## Practice Task 5 Solution
+
+**Task:** Scatter plot with color gradient and size aesthetics
+
+```{r solution-5}
+ggplot(sales_data, aes(x = sales, y = units,
+                       color = profit_margin,
+                       size = as.numeric(day_of_week))) +
+  geom_point(alpha = 0.6) +
+  scale_color_gradient2(
+    low = 'red',
+    mid = 'yellow',
+    high = 'green',
+    midpoint = median(sales_data$profit_margin),
+    labels = percent_format()
+  ) +
+  scale_size_continuous(range = c(1, 5)) +
+  scale_x_continuous(labels = dollar_format()) +
+  labs(
+    title = 'Sales Performance Analysis',
+    subtitle = 'Color indicates profit margin, size shows day of week',
+    x = 'Sales Amount',
+    y = 'Units Sold',
+    color = 'Profit Margin',
+    size = 'Day of Week'
+  ) +
+  theme_minimal()
+```
+
+**Explanation:** Multiple aesthetic mappings show relationships between four variables. Diverging color scale highlights above/below average margins.
+
+---
+
+# PART 3: Faceting - Solutions
+
+## Practice Task 6 Solution
+
+**Task:** Line plot faceted by quarter (rows) and region (columns)
+
+```{r solution-6}
+ggplot(sales_data, aes(x = date, y = sales)) +
+  geom_line(color = 'steelblue', alpha = 0.7) +
+  geom_smooth(method = 'loess', color = 'red',
+              se = FALSE, size = 0.8) +
+  facet_grid(quarter ~ region,
+             labeller = labeller(quarter = function(x) paste('Q', x))) +
+  scale_y_continuous(labels = dollar_format(scale = 0.001, suffix = 'K')) +
+  labs(
+    title = 'Daily Sales Trends by Quarter and Region',
+    subtitle = 'Red line shows smoothed trend',
+    x = 'Date',
+    y = 'Sales'
+  ) +
+  theme_minimal() +
+  theme(
+    strip.background = element_rect(fill = 'lightblue'),
+    strip.text = element_text(face = 'bold', size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 7)
+  )
+```
+
+**Explanation:** facet_grid() creates matrix layout. geom_smooth() adds trend lines. Custom labeller improves facet labels.
+
+---
+
+# PART 4: Themes and Customization - Solutions
+
+## Practice Task 7 Solution
+
+**Task:** Well-labeled bar chart of average profit margin by product
+
+```{r solution-7}
+# Prepare data
+avg_margin <- sales_data %>%
+  group_by(product) %>%
+  summarise(avg_profit_margin = mean(profit_margin), .groups = 'drop')
+
+# Create plot
+ggplot(avg_margin, aes(x = reorder(product, avg_profit_margin),
+                       y = avg_profit_margin,
+                       fill = product)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = scales::percent(avg_profit_margin, accuracy = 0.1)),
+            hjust = -0.2, size = 4, fontface = 'bold') +
+  scale_y_continuous(
+    labels = percent_format(),
+    expand = expansion(mult = c(0, 0.15))
+  ) +
+  scale_fill_brewer(palette = 'Set3') +
+  coord_flip() +
+  labs(
+    title = 'Average Profit Margin by Product Category',
+    subtitle = 'Analysis of 2024 sales data across all regions',
+    x = NULL,
+    y = 'Average Profit Margin',
+    caption = 'Data Source: Company Sales Database 2024\nNote: Margins calculated as profit/sales ratio'
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 16, face = 'bold', hjust = 0),
+    plot.subtitle = element_text(size = 11, color = 'gray30', hjust = 0),
+    plot.caption = element_text(size = 9, color = 'gray50',
+                                hjust = 0, face = 'italic'),
+    axis.title.x = element_text(size = 12, face = 'bold'),
+    axis.text.y = element_text(size = 11, face = 'bold'),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Explanation:** Publication-quality formatting with hierarchical text sizing, direct labeling, and detailed theme customization.
+
+---
+
+# PART 5: Scales - Solutions
+
+## Practice Task 8 Solution
+
+**Task:** Scatter plot with custom color gradient (red to green)
+
+```{r solution-8}
+ggplot(sales_data, aes(x = sales, y = profit, color = profit_margin)) +
+  geom_point(size = 3, alpha = 0.7) +
+  scale_color_gradient2(
+    low = '#d73027',      # Red
+    mid = '#ffffbf',      # Yellow
+    high = '#1a9850',     # Green
+    midpoint = median(sales_data$profit_margin),
+    labels = percent_format(),
+    name = 'Profit\nMargin'
+  ) +
+  scale_x_continuous(labels = dollar_format()) +
+  scale_y_continuous(labels = dollar_format()) +
+  labs(
+    title = 'Sales and Profit Analysis with Profit Margin Indicators',
+    subtitle = 'Red = Low margins, Green = High margins',
+    x = 'Total Sales',
+    y = 'Total Profit'
+  ) +
+  theme_minimal() +
+  theme(legend.position = 'right')
+```
+
+**Explanation:** scale_color_gradient2() creates diverging colors centered on median, making it easy to identify high/low margins.
+
+---
+
+# PART 6: Advanced Visualizations - Solutions
+
+## Practice Task 9 Solution
+
+**Task:** Box plot of profit by region with overlaid colored points
+
+```{r solution-9}
+ggplot(sales_data, aes(x = region, y = profit)) +
+  geom_boxplot(fill = 'lightgray', alpha = 0.7,
+               outlier.shape = NA) +
+  geom_jitter(aes(color = product),
+              width = 0.2,
+              alpha = 0.5,
+              size = 2) +
+  scale_y_continuous(labels = dollar_format()) +
+  scale_color_brewer(palette = 'Set1') +
+  labs(
+    title = 'Profit Distribution Across Regions',
+    subtitle = 'Box plots show distribution quartiles, points show individual transactions',
+    x = 'Region',
+    y = 'Profit',
+    color = 'Product Type'
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = 'bold', size = 14),
+    legend.position = 'bottom'
+  )
+```
+
+**Explanation:** Combines box plots (distribution) with jittered points (individual observations) colored by product. Setting outlier.shape = NA prevents double-plotting.
+
+## Practice Task 10 Solution
+
+**Task:** Heatmap of average profit margin by product and day of week
+
+```{r solution-10}
+# Prepare data
+heatmap_data <- sales_data %>%
+  group_by(product, day_of_week) %>%
+  summarise(avg_margin = mean(profit_margin), .groups = 'drop')
+
+# Create heatmap
+ggplot(heatmap_data, aes(x = day_of_week, y = product, fill = avg_margin)) +
+  geom_tile(color = 'white', size = 1.5) +
+  geom_text(aes(label = scales::percent(avg_margin, accuracy = 0.1)),
+            color = 'black', fontface = 'bold', size = 4) +
+  scale_fill_gradient2(
+    low = '#d73027',
+    mid = '#ffffbf',
+    high = '#1a9850',
+    midpoint = median(heatmap_data$avg_margin),
+    labels = percent_format(),
+    name = 'Average\nProfit Margin'
+  ) +
+  labs(
+    title = 'Profit Margin Patterns by Product and Day of Week',
+    subtitle = 'Darker green indicates higher profit margins',
+    x = 'Day of Week',
+    y = 'Product'
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = 'bold', size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(face = 'bold'),
+    panel.grid = element_blank(),
+    legend.position = 'right'
+  )
+```
+
+**Explanation:** Heatmaps excel at showing patterns in two-dimensional data. White borders separate cells, diverging colors highlight performance.
+
+---
+
+# COMPREHENSIVE PROJECT - Complete Solution
+
+```{r comprehensive-solution, fig.width=16, fig.height=10}
+# Plot 1: Time series with trend
+daily_totals <- sales_data %>%
+  group_by(date) %>%
+  summarise(total_sales = sum(sales), .groups = 'drop')
+
+p1 <- ggplot(daily_totals, aes(x = date, y = total_sales)) +
+  geom_line(color = 'steelblue', alpha = 0.6) +
+  geom_smooth(method = 'loess', color = 'darkred', se = TRUE, size = 1) +
+  scale_y_continuous(labels = dollar_format(scale = 0.001, suffix = 'K')) +
+  scale_x_date(date_breaks = '1 month', date_labels = '%b') +
+  labs(title = 'Daily Sales Trend', x = NULL, y = 'Sales') +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.title = element_text(face = 'bold'))
+
+# Plot 2: Bar chart by product
+product_totals <- sales_data %>%
+  group_by(product) %>%
+  summarise(total_sales = sum(sales), .groups = 'drop')
+
+p2 <- ggplot(product_totals,
+             aes(x = reorder(product, total_sales),
+                 y = total_sales, fill = product)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_y_continuous(labels = dollar_format(scale = 0.000001, suffix = 'M')) +
+  scale_fill_brewer(palette = 'Set2') +
+  labs(title = 'Sales by Product', x = NULL, y = 'Total Sales') +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = 'bold'))
+
+# Plot 3: Faceted box plots
+p3 <- ggplot(sales_data, aes(x = region, y = sales, fill = region)) +
+  geom_boxplot(show.legend = FALSE) +
+  facet_wrap(~ product, scales = 'free_x', ncol = 5) +
+  scale_y_continuous(labels = dollar_format(scale = 0.001, suffix = 'K')) +
+  scale_fill_brewer(palette = 'Pastel1') +
+  labs(title = 'Sales Distribution by Product and Region',
+       x = NULL, y = 'Sales') +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = 'bold'),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+        strip.text = element_text(face = 'bold'))
+
+# Plot 4: Scatter plot
+p4 <- ggplot(sales_data, aes(x = sales, y = profit,
+                             size = units, color = product)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = 'lm', se = FALSE, color = 'black',
+              linetype = 'dashed', size = 0.5) +
+  scale_size_continuous(range = c(0.5, 4), guide = 'none') +
+  scale_x_continuous(labels = dollar_format(scale = 0.001, suffix = 'K')) +
+  scale_y_continuous(labels = dollar_format(scale = 0.001, suffix = 'K')) +
+  scale_color_brewer(palette = 'Dark2') +
+  labs(title = 'Sales vs Profit', x = 'Sales', y = 'Profit',
+       color = 'Product') +
+  theme_minimal(base_size = 11) +
+  theme(plot.title = element_text(face = 'bold'),
+        legend.position = 'bottom')
+
+# Combine all plots
+dashboard <- (p1 + p2) / (p3 + p4) +
+  plot_annotation(
+    title = 'Sales Performance Dashboard 2024',
+    subtitle = 'Comprehensive analysis of sales, products, and regional performance',
+    caption = paste('Data source: Company Sales Database | Generated:', Sys.Date()),
+    theme = theme(
+      plot.title = element_text(size = 18, face = 'bold', hjust = 0.5),
+      plot.subtitle = element_text(size = 12, hjust = 0.5),
+      plot.caption = element_text(size = 9, hjust = 1, face = 'italic')
+    )
+  )
+
+# Display dashboard
+print(dashboard)
+
+# Save dashboard
+ggsave('sales_dashboard.png', dashboard,
+       width = 16, height = 10, dpi = 300, bg = 'white')
+
+cat('Dashboard saved successfully!\n')
+```
+
+**Key Features:**
+
+- Consistent theme and color palettes
+- Appropriate chart types for each relationship
+- Professional formatting with dollar/K/M suffixes
+- Clear titles and labels
+- Smooth trend lines
+- Logical patchwork layout
+- High-resolution export
+
+---
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
