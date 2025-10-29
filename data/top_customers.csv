@@ -1,0 +1,6 @@
+customer_id,customer_name,segment,total_spent,num_orders,avg_order
+3,Customer 3,Startup,16848,6,2808
+7,Customer 7,Enterprise,16578,8,2072.25
+15,Customer 15,SMB,16524,7,2360.5714285714284
+10,Customer 10,Startup,14472,8,1809
+14,Customer 14,Startup,13068,10,1306.8
