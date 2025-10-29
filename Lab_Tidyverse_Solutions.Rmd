@@ -505,10 +505,10 @@ revenue_matrix <- final_analysis %>%
   )
 
 # Step 8: Export results
-write_csv(product_region_summary, 'product_region_summary.csv')
-write_csv(top_customers, 'top_customers.csv')
-write_csv(monthly_trends, 'monthly_trends.csv')
-write_csv(revenue_matrix, 'revenue_matrix.csv')
+write_csv(product_region_summary, 'data/product_region_summary.csv')
+write_csv(top_customers, 'data/top_customers.csv')
+write_csv(monthly_trends, 'data/monthly_trends.csv')
+write_csv(revenue_matrix, 'data/revenue_matrix.csv')
 
 # Display key insights
 cat('=== ANALYSIS COMPLETE ===\n\n')
