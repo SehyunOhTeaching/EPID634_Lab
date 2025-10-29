@@ -1,0 +1,772 @@
+---
+title: "Data Wrangling Lab - ANSWER KEY"
+author: "Answer Key"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Welcome! 👋
+
+This document contains complete answers for all exercises in the **Data Wrangling Lab**.
+
+---
+
+# Getting Started
+
+## Step 1: Install and Load Packages
+
+```{r packages}
+# Install packages (only need to do this ONCE)
+# Remove the # to run these lines:
+# install.packages("tidyverse")
+
+# Load packages (do this EVERY TIME you open R)
+library(tidyverse)
+
+cat("✓ Packages loaded!\n")
+```
+
+---
+
+## Step 2: Create Sample Data
+
+```{r create-data}
+# Create a dataset
+bakery_sales <- tibble(
+  date = c("2024-01-01", "2024-01-01", "2024-01-02", "2024-01-02", "2024-01-03"),
+  item = c("Bread", "Cake", "Bread", "Cookie", "Cake"),
+  quantity = c(5, 2, 8, 10, 3),
+  price = c(3.50, 15.00, 3.50, 2.00, 15.00),
+  customer = c("Alice", "Bob", "Alice", "Charlie", "Alice")
+)
+
+# Look at the data
+bakery_sales
+```
+
+---
+
+# PART 1: Looking at Your Data
+
+## Exercise 1.1: See Your Data
+
+```{r view-data}
+# Method 1: Just type the name
+bakery_sales
+
+# Method 2: See the first few rows
+head(bakery_sales)
+
+# Method 3: See a summary
+glimpse(bakery_sales)
+```
+
+**Practice Question 1:** How many rows (observations) are in our data?
+**Answer:** 5 rows
+
+**Practice Question 2:** How many columns (variables) do we have?
+**Answer:** 5 columns
+
+---
+
+## Exercise 1.2: Understanding Your Data
+
+```{r understand-data}
+# How many rows?
+nrow(bakery_sales)
+
+# How many columns?
+ncol(bakery_sales)
+
+# What are the column names?
+colnames(bakery_sales)
+
+# Get basic statistics
+summary(bakery_sales)
+```
+
+**🎯 YOUR TURN ANSWERS:**
+1. Number of rows: **5**
+2. Number of columns: **5**
+3. Column names: **date, item, quantity, price, customer**
+
+---
+
+# PART 2: Selecting Columns
+
+## Exercise 2.1: Pick Specific Columns
+
+```{r select-columns}
+# Select just the item and price columns
+bakery_sales %>%
+  dplyr::select(item, price)
+```
+
+```{r select-examples}
+# Select multiple columns
+bakery_sales %>%
+  dplyr::select(date, item, quantity)
+
+# Select all columns EXCEPT one
+bakery_sales %>%
+  dplyr::select(-customer)
+
+# Rename while selecting
+bakery_sales %>%
+  dplyr::select(product = item, amount = quantity)
+```
+
+**🎯 YOUR TURN:** Select only the date and customer columns.
+
+```{r practice-2-1}
+# ANSWER:
+bakery_sales %>%
+  dplyr::select(date, customer)
+```
+
+---
+
+# PART 3: Filtering Rows
+
+## Exercise 3.1: Basic Filtering
+
+```{r filter-basic}
+# Show only Bread sales
+bakery_sales %>%
+  filter(item == "Bread")
+```
+
+```{r filter-examples}
+# Show sales where quantity is more than 5
+bakery_sales %>%
+  filter(quantity > 5)
+
+# Show sales where price is exactly $15
+bakery_sales %>%
+  filter(price == 15.00)
+
+# Show sales that are NOT bread
+bakery_sales %>%
+  filter(item != "Bread")
+```
+
+**🎯 YOUR TURN:** Show only sales where the customer is Alice.
+
+```{r practice-3-1}
+# ANSWER:
+bakery_sales %>%
+  filter(customer == "Alice")
+```
+
+---
+
+## Exercise 3.2: Combining Filters
+
+```{r filter-multiple}
+# Show Bread sales with quantity more than 3
+# Using AND (&)
+bakery_sales %>%
+  filter(item == "Bread" & quantity > 3)
+
+# Show sales that are EITHER Bread OR Cake
+# Using OR (|)
+bakery_sales %>%
+  filter(item == "Bread" | item == "Cake")
+
+# Easier way for OR:
+bakery_sales %>%
+  filter(item %in% c("Bread", "Cake"))
+```
+
+**🎯 YOUR TURN:** Show sales where quantity is more than 5 AND price is less than $10.
+
+```{r practice-3-2}
+# ANSWER:
+bakery_sales %>%
+  filter(quantity > 5 & price < 10)
+```
+
+---
+
+# PART 4: Creating New Columns
+
+## Exercise 4.1: Basic Calculations
+
+```{r mutate-basic}
+# Create a total_price column
+bakery_sales %>%
+  mutate(total_price = quantity * price)
+```
+
+```{r mutate-examples}
+# Create multiple new columns at once
+bakery_sales %>%
+  mutate(
+    total_price = quantity * price,
+    is_expensive = price > 10,
+    sale_date = date  # just copying a column
+  )
+```
+
+**🎯 YOUR TURN:** Create a column called `discount` that is 10% of the price.
+
+```{r practice-4-1}
+# ANSWER:
+bakery_sales %>%
+  mutate(discount = price * 0.10)
+
+# Alternative with formatted output
+bakery_sales %>%
+  mutate(discount = round(price * 0.10, 2))
+```
+
+---
+
+## Exercise 4.2: Conditional Columns
+
+```{r mutate-conditional}
+# Add a category column
+bakery_sales %>%
+  mutate(
+    category = if_else(price > 10, "Expensive", "Affordable")
+  )
+```
+
+```{r mutate-case-when}
+# For multiple conditions, use case_when
+bakery_sales %>%
+  mutate(
+    price_category = case_when(
+      price < 5 ~ "Cheap",
+      price < 10 ~ "Medium",
+      price >= 10 ~ "Expensive"
+    )
+  )
+```
+
+**🎯 YOUR TURN:** Create a column called `size` that says:
+- "Small" if quantity < 5
+- "Medium" if quantity < 10
+- "Large" if quantity >= 10
+
+```{r practice-4-2}
+# ANSWER:
+bakery_sales %>%
+  mutate(
+    size = case_when(
+      quantity < 5 ~ "Small",
+      quantity < 10 ~ "Medium",
+      quantity >= 10 ~ "Large"
+    )
+  )
+```
+
+---
+
+# PART 5: Sorting Data
+
+## Exercise 5.1: Arrange by Column
+
+```{r arrange-basic}
+# Sort by price (lowest to highest)
+bakery_sales %>%
+  arrange(price)
+
+# Sort by price (highest to lowest)
+bakery_sales %>%
+  arrange(desc(price))
+```
+
+**🎯 YOUR TURN:** Sort by quantity from highest to lowest.
+
+```{r practice-5-1}
+# ANSWER:
+bakery_sales %>%
+  arrange(desc(quantity))
+```
+
+---
+
+# PART 6: Grouping and Summarizing
+
+## Exercise 6.1: Count Things
+
+```{r count-basic}
+# How many times did we sell each item?
+bakery_sales %>%
+  count(item)
+
+# Sort the counts
+bakery_sales %>%
+  count(item, sort = TRUE)
+```
+
+**🎯 YOUR TURN:** Count how many times each customer appears.
+
+```{r practice-6-1}
+# ANSWER:
+bakery_sales %>%
+  count(customer)
+
+# With sorting
+bakery_sales %>%
+  count(customer, sort = TRUE)
+```
+
+---
+
+## Exercise 6.2: Calculate Summaries
+
+```{r summarize-basic}
+# Calculate total quantity sold
+bakery_sales %>%
+  summarise(total_quantity = sum(quantity))
+```
+
+```{r summarize-examples}
+# Multiple summaries at once
+bakery_sales %>%
+  summarise(
+    total_sales = sum(quantity),
+    average_price = mean(price),
+    cheapest_item = min(price),
+    most_expensive = max(price),
+    number_of_sales = n()
+  )
+```
+
+**🎯 YOUR TURN:** Calculate the average quantity sold.
+
+```{r practice-6-2}
+# ANSWER:
+bakery_sales %>%
+  summarise(average_quantity = mean(quantity))
+
+# With rounding
+bakery_sales %>%
+  summarise(average_quantity = round(mean(quantity), 2))
+```
+
+---
+
+## Exercise 6.3: Group By
+
+```{r group-by-basic}
+# Calculate total quantity for each item
+bakery_sales %>%
+  group_by(item) %>%
+  summarise(total_quantity = sum(quantity))
+```
+
+```{r group-by-examples}
+# Multiple grouping variables
+bakery_sales %>%
+  mutate(total_price = quantity * price) %>%
+  group_by(item, customer) %>%
+  summarise(
+    times_bought = n(),
+    total_spent = sum(total_price),
+    .groups = 'drop'
+  )
+```
+
+**🎯 YOUR TURN:** Find the total quantity sold by each customer.
+
+```{r practice-6-3}
+# ANSWER:
+bakery_sales %>%
+  group_by(customer) %>%
+  summarise(total_quantity = sum(quantity))
+
+# More detailed version
+bakery_sales %>%
+  group_by(customer) %>%
+  summarise(
+    total_quantity = sum(quantity),
+    total_items = n(),
+    average_quantity = mean(quantity)
+  )
+```
+
+---
+
+# PART 7: Putting It All Together
+
+## Exercise 7.1: Multi-Step Analysis
+
+```{r combined-example}
+# Find total revenue by item, sorted by revenue
+bakery_sales %>%
+  mutate(total_price = quantity * price) %>%
+  group_by(item) %>%
+  summarise(
+    total_quantity = sum(quantity),
+    total_revenue = sum(total_price),
+    average_price = mean(price)
+  ) %>%
+  arrange(desc(total_revenue))
+```
+
+**🎯 CHALLENGE:** Create an analysis that shows:
+1. Only sales where quantity > 2
+2. Calculate total revenue (quantity * price) for each customer
+3. Sort by revenue from highest to lowest
+
+```{r practice-7-1}
+# ANSWER:
+bakery_sales %>%
+  filter(quantity > 2) %>%
+  mutate(revenue = quantity * price) %>%
+  group_by(customer) %>%
+  summarise(total_revenue = sum(revenue)) %>%
+  arrange(desc(total_revenue))
+
+# More detailed version with additional info
+bakery_sales %>%
+  filter(quantity > 2) %>%
+  mutate(revenue = quantity * price) %>%
+  group_by(customer) %>%
+  summarise(
+    total_revenue = sum(revenue),
+    items_purchased = n(),
+    total_quantity = sum(quantity)
+  ) %>%
+  arrange(desc(total_revenue))
+```
+
+---
+
+# PART 8: Working with Real Data Files
+
+## Exercise 8.1: Save and Read CSV Files
+
+```{r save-read-files}
+# Save our data to a CSV file
+write_csv(bakery_sales, "outputs/my_bakery_data.csv")
+
+# Read it back
+my_data <- read_csv("outputs/my_bakery_data.csv")
+
+# Check if it worked
+my_data
+```
+
+**🎯 YOUR TURN:** 
+1. Save the bakery data with a different filename
+2. Read it back into a new variable
+3. View the data to make sure it worked
+
+```{r practice-8-1}
+# ANSWER:
+# Step 1: Save with different name
+write_csv(bakery_sales, "bakery_backup.csv")
+
+# Step 2: Read it back
+bakery_backup <- read_csv("bakery_backup.csv")
+
+# Step 3: View the data
+bakery_backup
+
+# Verify it's the same
+identical(bakery_sales, bakery_backup)
+```
+
+---
+
+# COMPREHENSIVE EXERCISE: Analyze Your Own Data!
+
+## The Scenario
+
+You run a small coffee shop and have data for one week of sales.
+
+```{r final-project-data}
+# Create coffee shop data
+coffee_shop <- tibble(
+  day = c("Monday", "Monday", "Tuesday", "Tuesday", "Wednesday", 
+          "Wednesday", "Thursday", "Friday", "Friday", "Saturday"),
+  drink = c("Latte", "Cappuccino", "Latte", "Espresso", "Cappuccino",
+            "Latte", "Espresso", "Latte", "Cappuccino", "Latte"),
+  size = c("Medium", "Large", "Small", "Small", "Medium",
+           "Medium", "Small", "Large", "Medium", "Large"),
+  price = c(4.50, 5.00, 3.50, 2.50, 5.00,
+            4.50, 2.50, 5.50, 5.00, 5.50),
+  quantity = c(15, 8, 12, 5, 10,
+               18, 7, 20, 12, 25)
+)
+
+# Look at the data
+coffee_shop
+```
+
+## Your Tasks
+
+**Task 1:** How many total drinks were sold this week?
+
+```{r task-1}
+# ANSWER:
+coffee_shop %>%
+  summarise(total_drinks = sum(quantity))
+
+# Answer: 132 drinks
+```
+
+**Task 2:** What was the average price?
+
+```{r task-2}
+# ANSWER:
+coffee_shop %>%
+  summarise(average_price = mean(price))
+
+# Answer: $4.45
+```
+
+**Task 3:** Which drink was sold the most?
+
+```{r task-3}
+# ANSWER:
+coffee_shop %>%
+  group_by(drink) %>%
+  summarise(total_quantity = sum(quantity)) %>%
+  arrange(desc(total_quantity))
+
+# Answer: Latte with 70 drinks sold
+```
+
+**Task 4:** Calculate total revenue (quantity * price) for each day.
+
+```{r task-4}
+# ANSWER:
+coffee_shop %>%
+  mutate(revenue = quantity * price) %>%
+  group_by(day) %>%
+  summarise(total_revenue = sum(revenue)) %>%
+  arrange(desc(total_revenue))
+
+# Saturday had the highest revenue at $137.50
+```
+
+**Task 5:** Find the best-selling size of drinks.
+
+```{r task-5}
+# ANSWER:
+coffee_shop %>%
+  group_by(size) %>%
+  summarise(total_sold = sum(quantity)) %>%
+  arrange(desc(total_sold))
+
+# Answer: Medium size with 45 drinks
+```
+
+**Task 6:** Which day had the highest revenue?
+
+```{r task-6}
+# ANSWER:
+coffee_shop %>%
+  mutate(revenue = quantity * price) %>%
+  group_by(day) %>%
+  summarise(total_revenue = sum(revenue)) %>%
+  arrange(desc(total_revenue)) %>%
+  slice(1)
+
+# Alternative: using top_n
+coffee_shop %>%
+  mutate(revenue = quantity * price) %>%
+  group_by(day) %>%
+  summarise(total_revenue = sum(revenue)) %>%
+  top_n(1, total_revenue)
+
+# Answer: Saturday with $137.50
+```
+
+---
+
+# Extra Practice Problems
+
+## Problem 1: Pet Store
+
+Create a dataset with pet sales and find:
+1. Most popular pet
+2. Average price
+3. Total revenue
+
+```{r extra-1}
+# ANSWER:
+
+# Create the data
+pet_store <- tibble(
+  pet = c("Dog", "Cat", "Bird", "Dog", "Cat", "Fish", "Dog", "Cat"),
+  price = c(500, 300, 150, 550, 280, 50, 520, 310),
+  customer = c("John", "Mary", "Steve", "Lisa", "Tom", "Anna", "Mike", "Sarah")
+)
+
+# 1. Most popular pet
+pet_store %>%
+  count(pet, sort = TRUE)
+
+# 2. Average price
+pet_store %>%
+  summarise(average_price = mean(price))
+
+# 3. Total revenue
+pet_store %>%
+  summarise(total_revenue = sum(price))
+
+# Bonus: Revenue by pet type
+pet_store %>%
+  group_by(pet) %>%
+  summarise(
+    count = n(),
+    total_revenue = sum(price),
+    avg_price = mean(price)
+  ) %>%
+  arrange(desc(total_revenue))
+```
+
+## Problem 2: Grade Analysis
+
+Create student grade data and find:
+1. Average grade by subject
+2. Students with grades > 90
+3. Lowest and highest grades
+
+```{r extra-2}
+# ANSWER:
+
+# Create the data
+student_grades <- tibble(
+  student = c("Alice", "Bob", "Charlie", "Diana", "Eve",
+              "Alice", "Bob", "Charlie", "Diana", "Eve"),
+  subject = c("Math", "Math", "Math", "Math", "Math",
+              "Science", "Science", "Science", "Science", "Science"),
+  grade = c(95, 87, 92, 78, 88, 90, 85, 88, 94, 91)
+)
+
+# 1. Average grade by subject
+student_grades %>%
+  group_by(subject) %>%
+  summarise(average_grade = mean(grade))
+
+# 2. Students with grades > 90
+student_grades %>%
+  filter(grade > 90)
+
+# Or by student name
+student_grades %>%
+  filter(grade > 90) %>%
+  select(student, subject, grade)
+
+# 3. Lowest and highest grades
+student_grades %>%
+  summarise(
+    lowest_grade = min(grade),
+    highest_grade = max(grade)
+  )
+
+# Bonus: Overall statistics
+student_grades %>%
+  summarise(
+    min_grade = min(grade),
+    max_grade = max(grade),
+    avg_grade = mean(grade),
+    median_grade = median(grade)
+  )
+
+# Bonus: By student
+student_grades %>%
+  group_by(student) %>%
+  summarise(
+    average_grade = mean(grade),
+    subjects = n()
+  ) %>%
+  arrange(desc(average_grade))
+```
+
+---
+
+# Quick Reference Guide
+
+## Common Functions Cheat Sheet
+
+### Looking at Data
+```r
+head(data)           # First 6 rows
+glimpse(data)        # Overview
+summary(data)        # Statistics
+nrow(data)          # Number of rows
+ncol(data)          # Number of columns
+colnames(data)      # Column names
+```
+
+### Selecting Columns
+```r
+select(data, column1, column2)     # Pick columns
+select(data, -column1)             # Remove column
+select(data, new_name = old_name)  # Rename
+```
+
+### Filtering Rows
+```r
+filter(data, column > 10)          # One condition
+filter(data, col1 > 10 & col2 < 5) # Multiple conditions (AND)
+filter(data, col1 > 10 | col2 < 5) # Multiple conditions (OR)
+filter(data, col %in% c("A", "B")) # Match any value
+```
+
+### Creating Columns
+```r
+mutate(data, new_col = old_col * 2)
+mutate(data, category = if_else(price > 10, "High", "Low"))
+mutate(data, category = case_when(
+  price < 5 ~ "Low",
+  price < 10 ~ "Medium",
+  TRUE ~ "High"
+))
+```
+
+### Sorting
+```r
+arrange(data, column)              # Ascending
+arrange(data, desc(column))        # Descending
+```
+
+### Grouping and Summarizing
+```r
+group_by(data, column)
+summarise(data, total = sum(column))
+summarise(data, avg = mean(column))
+count(data, column)
+```
+
+---
+
+# Congratulations! 🎉
+
+You've completed the data wrangling lab!
+
+You now know how to:
+- ✅ Load and view data
+- ✅ Select columns
+- ✅ Filter rows
+- ✅ Create new columns
+- ✅ Sort data
+- ✅ Calculate summaries
+- ✅ Group data
+- ✅ Read and write files
+
+**Keep practicing and you'll be a data wizard in no time!** 🧙‍♂️
+
+---
+
+# Session Information
+```{r session-info}
+sessionInfo()
+```
