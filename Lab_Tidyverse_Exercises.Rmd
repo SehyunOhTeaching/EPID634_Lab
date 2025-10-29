@@ -80,10 +80,10 @@ glimpse(sales_data)
 str(sales_data)
 
 # Export to CSV
-write_csv(sales_data, 'data/sales_data.csv')
+write_csv(sales_data, 'output/sales_data.csv')
 
 # Read back in
-sales_data_imported <- read_csv('data/sales_data.csv')
+sales_data_imported <- read_csv('output/sales_data.csv')
 ```
 
 ---
