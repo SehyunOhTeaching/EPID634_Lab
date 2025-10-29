@@ -1,0 +1,176 @@
+---
+title: "Coffee Shop Dashboard ☕"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(shiny)
+
+# Coffee shop data
+coffee <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  drinks_sold = c(120, 140, 135, 150, 200, 250, 230),
+  revenue = c(480, 560, 540, 600, 800, 1000, 920),
+  customers = c(80, 95, 90, 100, 130, 160, 145)
+)
+```
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+**Filter by Day of Week**
+
+```{r}
+selectInput(
+  "day_select",
+  label = "Choose days to display:",
+  choices = c("All", unique(coffee$day)),
+  selected = "All",
+  multiple = TRUE
+)
+```
+
+---
+
+**About This Dashboard**
+
+This dashboard displays one week of coffee shop sales data. Use the dropdown above to filter by specific days.
+
+**Features:**
+- 📊 Interactive charts (hover for details)
+- 💰 Real-time metrics updates
+- 🔍 Day filtering
+
+```{r}
+# Create reactive filtered data
+filtered_coffee <- reactive({
+  if ("All" %in% input$day_select) {
+    coffee
+  } else {
+    coffee %>% filter(day %in% input$day_select)
+  }
+})
+```
+
+Row {data-height=150}
+-----------------------------------------------------------------------
+
+### 💰 Total Revenue
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_coffee()$revenue)
+  valueBox(
+    paste("$", format(total, big.mark = ",")),
+    icon = "fa-dollar-sign",
+    color = "success"
+  )
+})
+```
+
+### ☕ Total Drinks Sold
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_coffee()$drinks_sold)
+  valueBox(
+    total,
+    icon = "fa-coffee",
+    color = "info"
+  )
+})
+```
+
+### 👥 Average Customers per Day
+
+```{r}
+renderValueBox({
+  avg <- round(mean(filtered_coffee()$customers))
+  valueBox(
+    avg,
+    icon = "fa-users",
+    color = "warning"
+  )
+})
+```
+
+Row {data-height=400}
+-----------------------------------------------------------------------
+
+### Drinks Sold by Day (Bar Chart)
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee(), aes(x = day, y = drinks_sold)) +
+    geom_col(fill = "#8B4513", alpha = 0.8) +
+    labs(
+      title = "Daily Drink Sales",
+      x = "",
+      y = "Drinks Sold"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+  
+  ggplotly(p) %>%
+    layout(hovermode = "x")
+})
+```
+
+### Revenue Over Time (Line Chart)
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee(), aes(x = day, y = revenue, group = 1)) +
+    geom_line(color = "#2E8B57", size = 1.5) +
+    geom_point(color = "#FF6347", size = 4) +
+    labs(
+      title = "Daily Revenue Trend",
+      x = "",
+      y = "Revenue ($)"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+  
+  ggplotly(p) %>%
+    layout(hovermode = "x")
+})
+```
+
+Row {data-height=300}
+-----------------------------------------------------------------------
+
+### 📊 Daily Summary Table
+
+```{r}
+renderTable({
+  filtered_coffee() %>%
+    mutate(
+      avg_price_per_drink = paste("$", round(revenue / drinks_sold, 2)),
+      revenue_per_customer = paste("$", round(revenue / customers, 2)),
+      revenue = paste("$", revenue)
+    ) %>%
+    select(
+      Day = day,
+      `Drinks Sold` = drinks_sold,
+      Revenue = revenue,
+      Customers = customers,
+      `Avg Price/Drink` = avg_price_per_drink,
+      `Revenue/Customer` = revenue_per_customer
+    )
+}, 
+striped = TRUE,
+hover = TRUE,
+bordered = TRUE)
+```

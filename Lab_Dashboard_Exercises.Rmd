@@ -1,0 +1,755 @@
+---
+title: "Building Your First Dashboard - Beginner Friendly"
+author: "Student Name"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Welcome to Dashboard Building! 📊
+
+Learn to create interactive web dashboards - no web programming needed!
+
+## What You'll Learn
+
+- What is a dashboard?
+- Create a simple dashboard
+- Add charts and tables
+- Make it interactive
+- Share it with others
+
+**Time needed:** About 4-5 hours
+
+---
+
+# What is a Dashboard?
+
+A **dashboard** is like a control panel that shows information at a glance.
+
+Think of it like:
+- 📱 Your phone's home screen
+- 🚗 Your car's dashboard
+- 📺 A sports scoreboard
+
+**In R, we can create web-based dashboards that update with data!**
+
+---
+
+# Getting Started
+
+## Step 1: Install Packages
+
+```{r install, eval=FALSE}
+# Run these lines ONCE (remove the # first):
+# install.packages("flexdashboard")
+# install.packages("tidyverse")
+# install.packages("plotly")
+```
+
+## Step 2: Load Packages
+
+```{r packages}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(shiny)
+
+cat("✓ Packages loaded!\n")
+```
+
+---
+
+# Understanding Dashboard Files
+
+Dashboards use **R Markdown** files with special settings.
+
+## Basic Dashboard Structure
+
+Create a new file called `my_first_dashboard.Rmd` with this:
+
+```yaml
+---
+title: "My First Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+---
+```
+
+**Important parts:**
+- `title:` - What shows at the top
+- `flexdashboard::flex_dashboard` - Makes it a dashboard
+- `orientation: columns` - Layout in columns (can also use `rows`)
+
+---
+
+# Part 1: Simple Static Dashboard
+
+Let's build a basic dashboard step by step!
+
+## Step 1: Create Sample Data
+
+First, we need data to display:
+
+```{r sample-data}
+# Simple sales data
+sales <- tibble(
+  month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun"),
+  revenue = c(15000, 18000, 16000, 22000, 24000, 26000),
+  costs = c(10000, 12000, 11000, 14000, 15000, 16000),
+  customers = c(50, 60, 55, 75, 80, 85)
+)
+
+sales
+```
+
+---
+
+## Step 2: Complete Dashboard Code
+
+Here's a complete simple dashboard. Save this as `simple_dashboard.Rmd`:
+
+````markdown
+---
+title: "Sales Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+---
+
+```{r include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+
+# Load data
+sales <- tibble(
+  month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun"),
+  revenue = c(15000, 18000, 16000, 22000, 24000, 26000),
+  costs = c(10000, 12000, 11000, 14000, 15000, 16000),
+  customers = c(50, 60, 55, 75, 80, 85)
+)
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Monthly Revenue
+
+```{r}
+ggplot(sales, aes(x = month, y = revenue, group = 1)) +
+  geom_line(color = "blue", size = 1.5) +
+  geom_point(size = 3) +
+  labs(title = "Monthly Revenue", y = "Revenue ($)") +
+  theme_minimal()
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Customers Over Time
+
+```{r}
+ggplot(sales, aes(x = month, y = customers, group = 1)) +
+  geom_line(color = "green", size = 1.5) +
+  geom_point(size = 3) +
+  labs(title = "Customer Growth", y = "Number of Customers") +
+  theme_minimal()
+```
+````
+
+**To run this:**
+1. Copy this code to a new .Rmd file
+2. Click "Run Document" (or Knit)
+3. Your dashboard opens in a browser!
+
+---
+
+# Part 2: Adding Value Boxes
+
+Value boxes show important numbers prominently.
+
+## What are Value Boxes?
+
+Value boxes are big, colorful boxes showing key metrics like:
+- 💰 Total Revenue
+- 👥 Total Customers
+- 📈 Growth Rate
+
+## Add Value Boxes to Your Dashboard
+
+Add this section to your dashboard:
+
+````markdown
+Row {data-height=150}
+-----------------------------------------------------------------------
+
+### Total Revenue
+
+```{r}
+total_revenue <- sum(sales$revenue)
+
+valueBox(
+  value = paste("$", format(total_revenue, big.mark = ",")),
+  caption = "Total Revenue",
+  icon = "fa-dollar-sign",
+  color = "success"
+)
+```
+
+### Total Customers
+
+```{r}
+total_customers <- sum(sales$customers)
+
+valueBox(
+  value = total_customers,
+  caption = "Total Customers",
+  icon = "fa-users",
+  color = "primary"
+)
+```
+
+### Average Revenue
+
+```{r}
+avg_revenue <- mean(sales$revenue)
+
+valueBox(
+  value = paste("$", format(round(avg_revenue), big.mark = ",")),
+  caption = "Average Monthly Revenue",
+  icon = "fa-chart-line",
+  color = "info"
+)
+```
+````
+
+**Colors you can use:**
+- `"success"` - Green
+- `"primary"` - Blue
+- `"info"` - Light blue
+- `"warning"` - Orange
+- `"danger"` - Red
+
+---
+
+# Part 3: Making It Interactive
+
+Now let's add interactivity! This requires adding `runtime: shiny` to your YAML.
+
+## Updated Header
+
+```yaml
+---
+title: "Interactive Sales Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+runtime: shiny
+---
+```
+
+**⚠️ Important:** After adding `runtime: shiny`, click "Run Document" instead of "Knit"
+
+---
+
+## Adding a Dropdown Menu
+
+Let's add a menu to filter data:
+
+````markdown
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+**Select Month Range**
+
+```{r}
+selectInput(
+  "month_select",
+  label = "Choose months to display:",
+  choices = c("All", "Jan", "Feb", "Mar", "Apr", "May", "Jun"),
+  selected = "All",
+  multiple = TRUE
+)
+```
+````
+
+**How it works:**
+1. `selectInput` creates a dropdown menu
+2. `"month_select"` is the ID (we'll use this later)
+3. `choices` are the options in the menu
+4. User selections are stored in `input$month_select`
+
+---
+
+## Using the Input to Filter Data
+
+Add reactive filtering:
+
+````markdown
+```{r}
+# Create reactive filtered data
+filtered_data <- reactive({
+  if ("All" %in% input$month_select) {
+    sales  # Show all data
+  } else {
+    sales %>%
+      filter(month %in% input$month_select)  # Show selected months
+  }
+})
+```
+````
+
+**What's reactive()?**
+- Code inside `reactive()` automatically updates when inputs change
+- Think of it like a formula in Excel - when you change a cell, formulas recalculate
+
+---
+
+## Update Charts to Use Filtered Data
+
+Change your chart code to use `filtered_data()`:
+
+````markdown
+### Monthly Revenue
+
+```{r}
+renderPlot({
+  ggplot(filtered_data(), aes(x = month, y = revenue, group = 1)) +
+    geom_line(color = "blue", size = 1.5) +
+    geom_point(size = 3) +
+    labs(title = "Monthly Revenue", y = "Revenue ($)") +
+    theme_minimal()
+})
+```
+````
+
+**Key changes:**
+1. Use `renderPlot({...})` to wrap the chart
+2. Use `filtered_data()` instead of `sales`
+3. Add `()` after `filtered_data` because it's a reactive function
+
+---
+
+# Part 4: Adding Interactive Charts with plotly
+
+Plotly makes charts interactive (hover, zoom, pan)!
+
+## Convert ggplot to plotly
+
+```{r plotly-example}
+# Create a ggplot chart
+p <- ggplot(sales, aes(x = month, y = revenue, group = 1)) +
+  geom_line(color = "blue", size = 1.5) +
+  geom_point(size = 3) +
+  theme_minimal()
+
+# Make it interactive!
+ggplotly(p)
+```
+
+**Try it:** Hover over the points!
+
+---
+
+## In Your Dashboard
+
+Replace regular charts with plotly versions:
+
+````markdown
+### Interactive Revenue Chart
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_data(), aes(x = month, y = revenue, group = 1)) +
+    geom_line(color = "blue", size = 1.5) +
+    geom_point(size = 3, aes(text = paste("Month:", month, "<br>Revenue: $", revenue))) +
+    theme_minimal()
+  
+  ggplotly(p, tooltip = "text")
+})
+```
+````
+
+---
+
+# Complete Beginner Dashboard Example
+
+Save this as `beginner_dashboard.Rmd`:
+
+````markdown
+---
+title: "My Sales Dashboard 📊"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+runtime: shiny
+---
+
+```{r include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+
+# Data
+sales <- tibble(
+  month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun"),
+  revenue = c(15000, 18000, 16000, 22000, 24000, 26000),
+  costs = c(10000, 12000, 11000, 14000, 15000, 16000),
+  customers = c(50, 60, 55, 75, 80, 85)
+)
+```
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+**Dashboard Controls**
+
+```{r}
+selectInput(
+  "month_select",
+  "Select Months:",
+  choices = c("All", unique(sales$month)),
+  selected = "All",
+  multiple = TRUE
+)
+```
+
+---
+
+**Instructions:**
+- Select months from the dropdown
+- Charts update automatically
+- Hover over charts for details
+
+```{r}
+# Reactive filtered data
+filtered_data <- reactive({
+  if ("All" %in% input$month_select) {
+    sales
+  } else {
+    sales %>% filter(month %in% input$month_select)
+  }
+})
+```
+
+Row {data-height=150}
+-----------------------------------------------------------------------
+
+### 💰 Total Revenue
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_data()$revenue)
+  valueBox(
+    paste("$", format(total, big.mark = ",")),
+    icon = "fa-dollar-sign",
+    color = "success"
+  )
+})
+```
+
+### 👥 Total Customers
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_data()$customers)
+  valueBox(
+    total,
+    icon = "fa-users",
+    color = "info"
+  )
+})
+```
+
+### 📊 Average Revenue
+
+```{r}
+renderValueBox({
+  avg <- mean(filtered_data()$revenue)
+  valueBox(
+    paste("$", format(round(avg), big.mark = ",")),
+    icon = "fa-chart-bar",
+    color = "warning"
+  )
+})
+```
+
+Row {data-height=400}
+-----------------------------------------------------------------------
+
+### Revenue Trend
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_data(), aes(x = month, y = revenue, group = 1)) +
+    geom_line(color = "#2E86AB", size = 1.5) +
+    geom_point(color = "#A23B72", size = 4) +
+    labs(y = "Revenue ($)", x = "") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  ggplotly(p)
+})
+```
+
+### Customer Growth
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_data(), aes(x = month, y = customers, group = 1)) +
+    geom_line(color = "#06A77D", size = 1.5) +
+    geom_point(color = "#D4A5A5", size = 4) +
+    labs(y = "Customers", x = "") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  ggplotly(p)
+})
+```
+
+Row {data-height=300}
+-----------------------------------------------------------------------
+
+### 📋 Data Table
+
+```{r}
+renderTable({
+  filtered_data() %>%
+    mutate(
+      profit = revenue - costs,
+      revenue_per_customer = round(revenue / customers, 2)
+    )
+})
+```
+````
+
+---
+
+# Your Turn: Build a Coffee Shop Dashboard! ☕
+
+## The Data
+
+```{r coffee-data}
+coffee <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  drinks_sold = c(120, 140, 135, 150, 200, 250, 230),
+  revenue = c(480, 560, 540, 600, 800, 1000, 920),
+  customers = c(80, 95, 90, 100, 130, 160, 145)
+)
+```
+
+## Your Tasks
+
+1. Create a new dashboard file
+2. Add three value boxes: Total Revenue, Total Drinks, Average Customers
+3. Create two charts: Drinks Sold (bar chart), Revenue (line chart)
+4. Add a dropdown to filter by day of week
+5. Make the charts interactive with plotly
+
+**Starter Template:**
+
+````markdown
+---
+title: "Coffee Shop Dashboard ☕"
+output: 
+  flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+
+coffee <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  drinks_sold = c(120, 140, 135, 150, 200, 250, 230),
+  revenue = c(480, 560, 540, 600, 800, 1000, 920),
+  customers = c(80, 95, 90, 100, 130, 160, 145)
+)
+```
+
+Sidebar {.sidebar}
+---
+
+```{r}
+# Add your dropdown here
+```
+
+Row
+---
+
+### Value Box 1
+```{r}
+# Add your value boxes here
+```
+
+### Value Box 2
+```{r}
+```
+
+### Value Box 3
+```{r}
+```
+
+Row
+---
+
+### Chart 1
+```{r}
+# Add your charts here
+```
+
+### Chart 2
+```{r}
+```
+````
+
+---
+
+# Dashboard Design Tips 🎨
+
+## Do's ✅
+
+- **Keep it simple** - Don't overcrowd
+- **Use colors wisely** - Too many colors = confusing
+- **Add titles** - Label everything clearly
+- **Make it responsive** - Test on different screen sizes
+- **Update regularly** - Stale data is useless
+
+## Don'ts ❌
+
+- **Don't use tiny fonts** - People can't read them
+- **Don't use similar colors** - Hard to distinguish
+- **Don't add too many filters** - Keep it simple
+- **Don't forget units** - Is it dollars? Thousands? Percent?
+- **Don't use pie charts** - They're hard to read (use bars!)
+
+---
+
+# Sharing Your Dashboard
+
+## Option 1: Share the .Rmd File
+
+- Simple but recipient needs R installed
+- Good for: Colleagues with R
+
+## Option 2: Publish to shinyapps.io (FREE!)
+
+```{r deploy, eval=FALSE}
+# Install rsconnect
+install.packages("rsconnect")
+
+# Set up account (get this from shinyapps.io)
+library(rsconnect)
+rsconnect::setAccountInfo(
+  name = "your-account-name",
+  token = "your-token",
+  secret = "your-secret"
+)
+
+# Deploy!
+rsconnect::deployApp("path/to/your/dashboard.Rmd")
+```
+
+**Free tier gives you:**
+- 5 apps
+- 25 active hours/month
+- Perfect for personal projects!
+
+## Option 3: Knit to HTML (Static Only)
+
+```{r html, eval=FALSE}
+# For NON-interactive dashboards
+rmarkdown::render("dashboard.Rmd")
+```
+
+---
+
+# Troubleshooting Common Issues
+
+## Error: "object not found"
+
+**Problem:** Typo in variable name  
+**Solution:** Check spelling (R is case-sensitive!)
+
+## Dashboard doesn't update when I change dropdown
+
+**Problem:** Forgot `runtime: shiny` in YAML  
+**Solution:** Add it and click "Run Document"
+
+## Chart shows nothing
+
+**Problem:** Forgot `group = 1` in line charts  
+**Solution:** Add `group = 1` to aes()
+
+## "Could not find function"
+
+**Problem:** Package not loaded  
+**Solution:** Add `library(packagename)` to setup chunk
+
+---
+
+# Next Steps 🚀
+
+You now know how to:
+- ✅ Create a basic dashboard
+- ✅ Add value boxes
+- ✅ Make charts interactive
+- ✅ Add dropdown filters
+- ✅ Share your dashboard
+
+## Want to Learn More?
+
+1. **Add more input types:**
+   - Sliders: `sliderInput()`
+   - Date pickers: `dateInput()`
+   - Checkboxes: `checkboxInput()`
+
+2. **Advanced layouts:**
+   - Multiple pages/tabs
+   - Storyboards
+   - Mobile-friendly designs
+
+3. **More interactivity:**
+   - Click on charts to filter
+   - Download buttons
+   - Real-time data updates
+
+---
+
+# Resources
+
+- [flexdashboard Documentation](https://pkgs.rstudio.com/flexdashboard/)
+- [Shiny Tutorial](https://shiny.rstudio.com/tutorial/)
+- [Dashboard Examples Gallery](https://shiny.rstudio.com/gallery/)
+
+---
+
+# Congratulations! 🎉
+
+You've built your first interactive dashboard!
+
+**Remember:**
+- Start simple
+- Test frequently
+- Get feedback from users
+- Iterate and improve
+
+**Happy dashboard building!** 📊✨
+
+---
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```

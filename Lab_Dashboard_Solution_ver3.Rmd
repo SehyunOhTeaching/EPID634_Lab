@@ -1,0 +1,213 @@
+---
+title: "Coffee Shop Dashboard - Advanced ☕"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: flatly
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(DT)
+
+coffee <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  drinks_sold = c(120, 140, 135, 150, 200, 250, 230),
+  revenue = c(480, 560, 540, 600, 800, 1000, 920),
+  customers = c(80, 95, 90, 100, 130, 160, 145)
+) %>%
+  mutate(
+    day_type = if_else(day %in% c("Sat", "Sun"), "Weekend", "Weekday"),
+    avg_price = revenue / drinks_sold
+  )
+```
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+**Dashboard Controls**
+
+```{r}
+selectInput(
+  "day_select",
+  label = "Filter by Day:",
+  choices = c("All", unique(coffee$day)),
+  selected = "All",
+  multiple = TRUE
+)
+
+radioButtons(
+  "day_type",
+  label = "Day Type:",
+  choices = c("All" = "all", "Weekday" = "Weekday", "Weekend" = "Weekend"),
+  selected = "all"
+)
+
+sliderInput(
+  "min_revenue",
+  label = "Minimum Revenue:",
+  min = 0,
+  max = 1000,
+  value = 0,
+  step = 50
+)
+
+hr()
+
+actionButton("reset", "Reset Filters", class = "btn-primary")
+
+filtered_coffee <- reactive({
+  data <- coffee
+  
+  # Filter by day selection
+  if (!"All" %in% input$day_select) {
+    data <- data %>% filter(day %in% input$day_select)
+  }
+  
+  # Filter by day type
+  if (input$day_type != "all") {
+    data <- data %>% filter(day_type == input$day_type)
+  }
+  
+  # Filter by minimum revenue
+  data <- data %>% filter(revenue >= input$min_revenue)
+  
+  return(data)
+})
+
+# Reset filters
+observeEvent(input$reset, {
+  updateSelectInput(session, "day_select", selected = "All")
+  updateRadioButtons(session, "day_type", selected = "all")
+  updateSliderInput(session, "min_revenue", value = 0)
+})
+```
+
+Row {data-height=120}
+-----------------------------------------------------------------------
+
+### 💰 Total Revenue
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_coffee()$revenue)
+  valueBox(
+    paste("$", format(total, big.mark = ",")),
+    icon = "fa-dollar-sign",
+    color = "success"
+  )
+})
+```
+
+### ☕ Total Drinks
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_coffee()$drinks_sold)
+  valueBox(
+    format(total, big.mark = ","),
+    icon = "fa-coffee",
+    color = "info"
+  )
+})
+```
+
+### 👥 Avg Customers
+
+```{r}
+renderValueBox({
+  avg <- round(mean(filtered_coffee()$customers))
+  valueBox(
+    avg,
+    icon = "fa-users",
+    color = "warning"
+  )
+})
+```
+
+### 📈 Avg Price/Drink
+
+```{r}
+renderValueBox({
+  avg <- mean(filtered_coffee()$avg_price)
+  valueBox(
+    paste("$", round(avg, 2)),
+    icon = "fa-chart-line",
+    color = "primary"
+  )
+})
+```
+
+Row {data-height=400}
+-----------------------------------------------------------------------
+
+### Drinks Sold by Day
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee(), aes(x = day, y = drinks_sold, fill = day_type)) +
+    geom_col(alpha = 0.8) +
+    scale_fill_manual(values = c("Weekday" = "#4682B4", "Weekend" = "#FF6347")) +
+    labs(y = "Drinks Sold", x = "", fill = "Day Type") +
+    theme_minimal() +
+    theme(legend.position = "top")
+  
+  ggplotly(p)
+})
+```
+
+### Revenue and Customer Trends
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee()) +
+    geom_line(aes(x = day, y = revenue, group = 1, color = "Revenue"), size = 1.5) +
+    geom_point(aes(x = day, y = revenue, color = "Revenue"), size = 3) +
+    geom_line(aes(x = day, y = customers * 10, group = 1, color = "Customers"), size = 1.5) +
+    geom_point(aes(x = day, y = customers * 10, color = "Customers"), size = 3) +
+    scale_y_continuous(
+      name = "Revenue ($)",
+      sec.axis = sec_axis(~./10, name = "Customers")
+    ) +
+    scale_color_manual(values = c("Revenue" = "darkgreen", "Customers" = "blue")) +
+    labs(x = "", color = "") +
+    theme_minimal() +
+    theme(legend.position = "top")
+  
+  ggplotly(p)
+})
+```
+
+Row {data-height=300}
+-----------------------------------------------------------------------
+
+### 📊 Detailed Data Table
+
+```{r}
+renderDT({
+  filtered_coffee() %>%
+    mutate(
+      avg_price = paste("$", round(avg_price, 2)),
+      revenue = paste("$", revenue)
+    ) %>%
+    select(
+      Day = day,
+      Type = day_type,
+      Drinks = drinks_sold,
+      Revenue = revenue,
+      Customers = customers,
+      `Avg Price` = avg_price
+    ) %>%
+    datatable(
+      options = list(
+        pageLength = 10,
+        dom = 'tip',
+        columnDefs = list(list(className = 'dt-center', targets = "_all"))
+      ),
+      rownames = FALSE
+    )
+})
+```

@@ -1,0 +1,577 @@
+---
+title: "Dashboard Building Lab - ANSWER KEY"
+author: "Answer Key"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Welcome to Dashboard Building! 📊
+
+This document contains complete answers for the **Dashboard Building Lab**.
+
+---
+
+# Getting Started
+
+## Load Packages
+
+```{r packages}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+
+cat("✓ Packages loaded!\n")
+```
+
+---
+
+# Coffee Shop Dashboard - Complete Solution
+
+Below is the complete solution for the Coffee Shop Dashboard exercise from the lab.
+
+## The Data
+
+```{r coffee-data}
+coffee <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  drinks_sold = c(120, 140, 135, 150, 200, 250, 230),
+  revenue = c(480, 560, 540, 600, 800, 1000, 920),
+  customers = c(80, 95, 90, 100, 130, 160, 145)
+)
+
+coffee
+```
+
+---
+
+## Complete Dashboard Code
+
+**To use this code:**
+1. Create a new R Markdown file in RStudio
+2. Copy the entire code below (starting from the `---` YAML header)
+3. Save it as `coffee_shop_dashboard.Rmd`
+4. Click **"Run Document"** (NOT "Knit")
+5. Your interactive dashboard will open in your browser!
+
+### Full Dashboard Code:
+`Lab_Beginner_Dashboard_Solution_ver1.Rmd`
+
+---
+
+# Alternative Dashboard Versions
+
+## Version 2: Column Layout
+
+An alternative version with a column-based layout: 
+`Lab_Beginner_Dashboard_Solution_ver2.Rmd`
+
+---
+
+## Version 3: With Additional Features
+
+This version includes more advanced features:
+`Lab_Beginner_Dashboard_Solution_ver3.Rmd`
+
+---
+
+# Code Explanations
+
+## Key Components Explained
+
+### 1. YAML Header
+
+```yaml
+---
+title: "Coffee Shop Dashboard ☕"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows    # or "columns"
+    theme: flatly       # optional theme
+runtime: shiny          # REQUIRED for interactivity
+---
+```
+
+**Important:**
+- `runtime: shiny` is REQUIRED for interactive dashboards
+- `orientation` can be "rows" or "columns"
+- Theme options: `default`, `cosmo`, `bootstrap`, `cerulean`, `journal`, `flatly`, `readable`, `spacelab`, `united`, `lumen`, `paper`, `sandstone`, `simplex`, `yeti`
+
+---
+
+### 2. Sidebar Creation
+
+```r
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+# Your sidebar content here
+```
+
+**Tips:**
+- Use `.sidebar` class to create a sidebar
+- Sidebars are great for controls and filters
+- Can contain inputs, text, or any content
+
+---
+
+### 3. Input Controls
+
+```r
+# Dropdown menu
+selectInput(
+  "input_id",           # ID to reference later
+  label = "Label:",     # Text shown to user
+  choices = c("A", "B"), # Options
+  selected = "A",       # Default selection
+  multiple = TRUE       # Allow multiple selections
+)
+
+# Radio buttons
+radioButtons(
+  "input_id",
+  label = "Choose one:",
+  choices = c("Option 1" = "val1", "Option 2" = "val2"),
+  selected = "val1"
+)
+
+# Slider
+sliderInput(
+  "input_id",
+  label = "Select value:",
+  min = 0,
+  max = 100,
+  value = 50,
+  step = 5
+)
+
+# Checkbox
+checkboxInput(
+  "input_id",
+  label = "Check this box",
+  value = TRUE
+)
+```
+
+---
+
+### 4. Reactive Data
+
+```r
+# Create reactive data that updates when inputs change
+filtered_data <- reactive({
+  # Your filtering logic here
+  if ("All" %in% input$day_select) {
+    original_data
+  } else {
+    original_data %>%
+      filter(day %in% input$day_select)
+  }
+})
+
+# Use reactive data with () after the name
+# CORRECT:
+filtered_data()
+
+# WRONG:
+filtered_data
+```
+
+**Key Points:**
+- Reactive expressions automatically update when inputs change
+- Always use `()` when calling reactive data: `filtered_data()`
+- Define reactive data once, use it multiple times
+
+---
+
+### 5. Value Boxes
+
+```r
+renderValueBox({
+  # Calculate your value
+  total <- sum(filtered_data()$column)
+  
+  # Create the value box
+  valueBox(
+    value = format(total, big.mark = ","),  # The number to display
+    caption = "Total Sales",                # Description
+    icon = "fa-dollar-sign",                # Font Awesome icon
+    color = "success"                       # Color theme
+  )
+})
+```
+
+**Color Options:**
+- `"primary"` - Blue
+- `"success"` - Green
+- `"info"` - Light Blue
+- `"warning"` - Orange
+- `"danger"` - Red
+
+**Icon Options:** Use [Font Awesome](https://fontawesome.com/icons) icons with `fa-` prefix
+
+---
+
+### 6. Rendering Charts
+
+```r
+# Basic chart
+renderPlotly({
+  p <- ggplot(filtered_data(), aes(x = x_var, y = y_var)) +
+    geom_col() +
+    theme_minimal()
+  
+  ggplotly(p)
+})
+
+# With custom tooltip
+renderPlotly({
+  p <- ggplot(filtered_data(), aes(
+    x = x_var, 
+    y = y_var,
+    text = paste("Day:", day, "<br>Value:", value)
+  )) +
+    geom_point(size = 3) +
+    theme_minimal()
+  
+  ggplotly(p, tooltip = "text")
+})
+```
+
+---
+
+### 7. Rendering Tables
+
+```r
+# Simple table
+renderTable({
+  filtered_data() %>%
+    select(Column1, Column2, Column3)
+})
+
+# Interactive table with DT package
+renderDT({
+  datatable(
+    filtered_data(),
+    options = list(
+      pageLength = 10,
+      searching = TRUE,
+      ordering = TRUE
+    )
+  )
+})
+```
+
+---
+
+### 8. Layout Structure
+
+```r
+# Row-based layout
+Row {data-height=150}
+-----------------------------------------------------------------------
+
+### Chart Title
+# Chart code here
+
+Row {data-height=400}
+-----------------------------------------------------------------------
+
+### Chart 1
+# Code
+
+### Chart 2
+# Code
+
+
+# Column-based layout
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart Title
+# Chart code here
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart Title
+# Chart code here
+```
+
+---
+
+# Common Dashboard Patterns
+
+## Pattern 1: Filter + Multiple Charts
+
+```r
+# 1. Create input
+selectInput("filter", "Filter:", choices = unique(data$category))
+
+# 2. Create reactive data
+filtered <- reactive({
+  data %>% filter(category == input$filter)
+})
+
+# 3. Use in multiple charts
+renderPlotly({ 
+  # Chart using filtered()
+})
+
+renderPlotly({ 
+  # Another chart using filtered()
+})
+```
+
+---
+
+## Pattern 2: Multiple Filters Combined
+
+```r
+# Multiple inputs
+selectInput("day", "Day:", choices = days)
+selectInput("product", "Product:", choices = products)
+sliderInput("price", "Min Price:", min = 0, max = 100, value = 0)
+
+# Combine in reactive
+filtered <- reactive({
+  data %>%
+    filter(
+      day %in% input$day,
+      product %in% input$product,
+      price >= input$price
+    )
+})
+```
+
+---
+
+## Pattern 3: Conditional Display
+
+```r
+# Checkbox to show/hide element
+checkboxInput("show_trend", "Show trend line", value = TRUE)
+
+# Use in chart
+renderPlotly({
+  p <- ggplot(data, aes(x, y)) + geom_point()
+  
+  if (input$show_trend) {
+    p <- p + geom_smooth(method = "lm")
+  }
+  
+  ggplotly(p)
+})
+```
+
+---
+
+# Troubleshooting Guide
+
+## Common Issues and Solutions
+
+### Issue 1: Dashboard Doesn't Update
+
+**Problem:** Clicking filters doesn't update charts
+
+**Solution:**
+- Make sure `runtime: shiny` is in YAML header
+- Check that you're using `filtered_data()` with `()` in render functions
+- Verify reactive data is defined correctly
+
+---
+
+### Issue 2: Can't Find Function Error
+
+**Problem:** `Error: could not find function "valueBox"`
+
+**Solution:**
+```r
+# Make sure flexdashboard is loaded
+library(flexdashboard)
+```
+
+---
+
+### Issue 3: Charts Not Showing
+
+**Problem:** Empty space where chart should be
+
+**Solution:**
+- Check for errors in R console
+- Make sure data exists: `print(filtered_data())`
+- Verify column names are correct
+- Check that `group = 1` is included for line charts
+
+---
+
+### Issue 4: Layout Issues
+
+**Problem:** Charts overlapping or wrong size
+
+**Solution:**
+```r
+# Specify heights and widths
+Row {data-height=200}
+Column {data-width=350}
+
+# Try different orientations
+orientation: rows  # vs orientation: columns
+```
+
+---
+
+# Best Practices
+
+## Dashboard Design Tips
+
+### 1. Keep It Simple
+- Don't overcrowd with too many charts
+- Use 3-6 main visualizations
+- Leave white space
+
+### 2. Use Hierarchy
+```r
+Row {data-height=150}  # Value boxes (small)
+-----------------------------------------------------------------------
+
+Row {data-height=400}  # Main charts (large)
+-----------------------------------------------------------------------
+
+Row {data-height=200}  # Tables (medium)
+-----------------------------------------------------------------------
+```
+
+### 3. Color Consistency
+```r
+# Define color palette
+colors <- c(
+  "Weekday" = "#4682B4",
+  "Weekend" = "#FF6347"
+)
+
+# Use throughout dashboard
+scale_fill_manual(values = colors)
+```
+
+### 4. Meaningful Labels
+```r
+# Good
+labs(
+  title = "Weekly Sales Trend",
+  x = "Day of Week",
+  y = "Revenue ($)"
+)
+
+# Bad
+labs(title = "Chart", x = "x", y = "y")
+```
+
+---
+
+# Testing Checklist
+
+Before sharing your dashboard:
+
+- [ ] All filters work correctly
+- [ ] Charts update when filters change
+- [ ] Value boxes show correct calculations
+- [ ] No error messages in console
+- [ ] Tooltips work (hover over charts)
+- [ ] Layout looks good on different screen sizes
+- [ ] Table is readable and formatted
+- [ ] Colors are distinguishable
+- [ ] All labels are clear
+- [ ] Data makes sense
+
+---
+
+# Publishing Options
+
+## Option 1: Share RMD File
+- Recipient needs R and RStudio
+- Good for: Colleagues with R
+
+## Option 2: shinyapps.io (Recommended)
+
+```r
+# Install if needed
+install.packages("rsconnect")
+
+# Connect account
+library(rsconnect)
+rsconnect::setAccountInfo(
+  name = "your-account",
+  token = "your-token",
+  secret = "your-secret"
+)
+
+# Deploy
+rsconnect::deployApp("path/to/dashboard.Rmd")
+```
+
+**Free Tier:**
+- 5 applications
+- 25 active hours/month
+- Good for personal projects
+
+## Option 3: RStudio Connect
+- For organizations
+- Scheduled updates
+- User authentication
+
+---
+
+# Additional Resources
+
+## Learning More
+
+- [flexdashboard Documentation](https://pkgs.rstudio.com/flexdashboard/)
+- [Shiny Tutorial](https://shiny.rstudio.com/tutorial/)
+- [Shiny Gallery](https://shiny.rstudio.com/gallery/)
+- [plotly R Documentation](https://plotly.com/r/)
+
+## Helpful Functions
+
+```r
+# Debugging
+print(filtered_data())      # Check reactive data
+observeEvent(input$filter, {  # Watch input changes
+  print(input$filter)
+})
+
+# Performance
+# Cache expensive calculations
+cached_data <- reactive({
+  # Expensive operation
+}) %>% bindCache(input$filter)
+```
+
+---
+
+# Congratulations! 🎉
+
+You now know how to:
+- ✅ Create interactive dashboards
+- ✅ Add filters and controls
+- ✅ Use reactive data
+- ✅ Display value boxes
+- ✅ Combine multiple visualizations
+- ✅ Deploy dashboards online
+
+**Keep building amazing dashboards!** 📊✨
+
+---
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```

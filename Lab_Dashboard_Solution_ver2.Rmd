@@ -1,0 +1,126 @@
+---
+title: "Coffee Shop Dashboard - Column Layout ☕"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+
+coffee <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  drinks_sold = c(120, 140, 135, 150, 200, 250, 230),
+  revenue = c(480, 560, 540, 600, 800, 1000, 920),
+  customers = c(80, 95, 90, 100, 130, 160, 145)
+)
+```
+
+Sidebar {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput(
+  "day_select",
+  label = "Select Days:",
+  choices = c("All", unique(coffee$day)),
+  selected = "All",
+  multiple = TRUE
+)
+
+hr()
+
+checkboxInput(
+  "show_trend",
+  label = "Show trend line on charts",
+  value = TRUE
+)
+
+filtered_coffee <- reactive({
+  if ("All" %in% input$day_select) {
+    coffee
+  } else {
+    coffee %>% filter(day %in% input$day_select)
+  }
+})
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Total Revenue
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_coffee()$revenue)
+  valueBox(
+    paste("$", format(total, big.mark = ",")),
+    icon = "fa-dollar-sign",
+    color = "success"
+  )
+})
+```
+
+### Total Drinks
+
+```{r}
+renderValueBox({
+  total <- sum(filtered_coffee()$drinks_sold)
+  valueBox(
+    total,
+    icon = "fa-coffee",
+    color = "primary"
+  )
+})
+```
+
+### Drinks Sold
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee(), aes(x = day, y = drinks_sold)) +
+    geom_col(fill = "#D2691E") +
+    labs(y = "Drinks", x = "") +
+    theme_minimal()
+  
+  ggplotly(p)
+})
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Revenue Chart
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee(), aes(x = day, y = revenue, group = 1)) +
+    geom_line(color = "darkgreen", size = 1.5) +
+    geom_point(color = "green", size = 3) +
+    labs(y = "Revenue ($)", x = "") +
+    theme_minimal()
+  
+  if (input$show_trend) {
+    p <- p + geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed")
+  }
+  
+  ggplotly(p)
+})
+```
+
+### Customer Count
+
+```{r}
+renderPlotly({
+  p <- ggplot(filtered_coffee(), aes(x = day, y = customers, group = 1)) +
+    geom_line(color = "blue", size = 1.5) +
+    geom_point(color = "navy", size = 3) +
+    labs(y = "Customers", x = "") +
+    theme_minimal()
+  
+  ggplotly(p)
+})
+```
