@@ -28,8 +28,6 @@ By the end of this lab, you'll be able to:
 - Calculate summary statistics
 - Combine datasets
 
-**Time needed:** About 3-4 hours
-
 ---
 
 # Getting Started
