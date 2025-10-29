@@ -1,0 +1,550 @@
+---
+title: "Making Charts in R - Beginner Friendly"
+author: "Student Name"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 6)
+```
+
+# Welcome to Data Visualization! 📊
+
+Learn to create beautiful charts and graphs in R. No experience needed!
+
+## What You'll Learn
+
+- Make basic charts (bar, line, scatter)
+- Customize colors and labels
+- Create multiple charts
+- Save your charts
+
+---
+
+# Getting Started
+
+```{r packages}
+# Load packages
+library(tidyverse)  # This includes ggplot2!
+
+# Check if it loaded
+cat("✓ Packages loaded successfully!\n")
+```
+
+---
+
+# Create Sample Data
+
+Let's make data about a lemonade stand!
+
+```{r create-data}
+# Weekly sales data
+lemonade <- tibble(
+  day = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+  cups_sold = c(25, 30, 35, 40, 50, 75, 80),
+  temperature = c(70, 75, 80, 82, 85, 90, 88),
+  price = c(2.00, 2.00, 2.50, 2.50, 2.50, 3.00, 3.00)
+)
+
+# Look at the data
+lemonade
+```
+
+---
+
+# PART 1: Bar Charts
+
+Bar charts show comparisons between categories.
+
+## Your First Chart! 🎉
+
+```{r first-chart}
+# Basic bar chart
+ggplot(data = lemonade, aes(x = day, y = cups_sold)) +
+  geom_col()
+```
+
+**How this works:**
+1. `ggplot()` - Start a chart
+2. `data = lemonade` - Use this dataset
+3. `aes(x = day, y = cups_sold)` - Put days on x-axis, sales on y-axis
+4. `geom_col()` - Make it a bar chart
+
+---
+
+## Make It Better!
+
+```{r better-bar}
+ggplot(lemonade, aes(x = day, y = cups_sold)) +
+  geom_col(fill = "skyblue") +  # Color the bars
+  labs(
+    title = "Lemonade Sales by Day",
+    x = "Day of Week",
+    y = "Cups Sold"
+  )
+```
+
+**🎯 YOUR TURN:** Change the color to "coral" or "lightgreen"
+
+```{r practice-1-1}
+# Your code here:
+
+```
+
+---
+
+## Sort the Bars
+
+```{r sorted-bar}
+ggplot(lemonade, aes(x = reorder(day, cups_sold), y = cups_sold)) +
+  geom_col(fill = "coral") +
+  labs(title = "Sales by Day (Sorted)", x = "Day", y = "Cups Sold") +
+  coord_flip()  # Make horizontal
+```
+
+**What's new?**
+- `reorder(day, cups_sold)` - Sort by sales
+- `coord_flip()` - Flip it sideways
+
+**🎯 YOUR TURN:** Make a bar chart of price by day
+
+```{r practice-1-2}
+# Your code here:
+
+```
+
+---
+
+# PART 2: Line Charts
+
+Line charts show trends over time.
+
+## Basic Line Chart
+
+```{r line-basic}
+ggplot(lemonade, aes(x = day, y = cups_sold)) +
+  geom_line(group = 1)  # group = 1 connects all points
+```
+
+**⚠️ Important:** For line charts with text on x-axis, add `group = 1`
+
+---
+
+## Make It Better!
+
+```{r line-better}
+ggplot(lemonade, aes(x = day, y = cups_sold, group = 1)) +
+  geom_line(color = "blue", size = 1.5) +  # Thicker blue line
+  geom_point(color = "red", size = 3) +    # Add red dots
+  labs(
+    title = "Lemonade Sales Trend",
+    x = "Day",
+    y = "Cups Sold"
+  ) +
+  theme_minimal()  # Clean look
+```
+
+**🎯 YOUR TURN:** Create a line chart showing temperature over the week
+
+```{r practice-2-1}
+# Your code here:
+
+```
+
+---
+
+# PART 3: Scatter Plots
+
+Scatter plots show relationships between two numbers.
+
+## Basic Scatter Plot
+
+```{r scatter-basic}
+ggplot(lemonade, aes(x = temperature, y = cups_sold)) +
+  geom_point()
+```
+
+**What this shows:** Do we sell more when it's hotter?
+
+---
+
+## Add a Trend Line
+
+```{r scatter-trend}
+ggplot(lemonade, aes(x = temperature, y = cups_sold)) +
+  geom_point(size = 4, color = "darkblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Add trend line
+  labs(
+    title = "Sales vs Temperature",
+    x = "Temperature (°F)",
+    y = "Cups Sold"
+  )
+```
+
+**💡 What's `geom_smooth()`?**
+- Adds a line showing the general trend
+- `method = "lm"` means straight line
+- `se = FALSE` removes the gray area
+
+**🎯 YOUR TURN:** Make a scatter plot of price vs cups_sold
+
+```{r practice-3-1}
+# Your code here:
+
+```
+
+---
+
+# PART 4: Colors and Themes
+
+## Adding Colors by Category
+
+```{r color-by-category}
+# Add a weekend column
+lemonade <- lemonade %>%
+  mutate(
+    is_weekend = if_else(day %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+  )
+
+# Color by weekend
+ggplot(lemonade, aes(x = day, y = cups_sold, fill = is_weekend)) +
+  geom_col() +
+  labs(title = "Sales: Weekday vs Weekend", fill = "Day Type")
+```
+
+---
+
+## Built-in Themes
+
+```{r themes}
+# Try different themes!
+p <- ggplot(lemonade, aes(x = day, y = cups_sold)) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Lemonade Sales")
+
+# Theme 1: Minimal (clean)
+p + theme_minimal()
+
+# Theme 2: Classic (traditional)
+# p + theme_classic()
+
+# Theme 3: Dark
+# p + theme_dark()
+```
+
+**🎯 YOUR TURN:** Try `theme_bw()` or `theme_light()`
+
+```{r practice-4-1}
+# Your code here:
+
+```
+
+---
+
+# PART 5: Multiple Charts Together
+
+## Create Multiple Simple Charts
+
+```{r multiple-charts}
+library(patchwork)  # For combining charts
+
+# Chart 1: Bar chart
+p1 <- ggplot(lemonade, aes(x = day, y = cups_sold)) +
+  geom_col(fill = "coral") +
+  labs(title = "Cups Sold") +
+  theme_minimal()
+
+# Chart 2: Line chart
+p2 <- ggplot(lemonade, aes(x = day, y = temperature, group = 1)) +
+  geom_line(color = "red", size = 1.2) +
+  geom_point(size = 3) +
+  labs(title = "Temperature") +
+  theme_minimal()
+
+# Put them side by side
+p1 | p2
+```
+
+**How it works:**
+- Create each chart separately
+- Use `|` to put them side by side
+- Use `/` to put them on top of each other
+
+---
+
+## Stack Charts Vertically
+
+```{r stack-charts}
+# Put one above the other
+p1 / p2
+```
+
+**🎯 YOUR TURN:** Create any two charts and combine them
+
+```{r practice-5-1}
+# Your code here:
+
+```
+
+---
+
+# PART 6: Saving Your Charts
+
+## Save as Image File
+
+```{r save-chart, eval=FALSE}
+# Create a chart
+my_chart <- ggplot(lemonade, aes(x = day, y = cups_sold)) +
+  geom_col(fill = "skyblue") +
+  labs(title = "Lemonade Sales") +
+  theme_minimal()
+
+# Save it!
+ggsave("my_lemonade_chart.png", my_chart, width = 8, height = 6)
+
+# It's now saved in your working directory!
+```
+
+**💡 Tips:**
+- Use `.png` for images
+- Use `.pdf` for documents
+- `width` and `height` are in inches
+
+---
+
+# COMPREHENSIVE PROJECT: Pizza Shop Analysis
+
+Let's analyze a week of pizza shop data!
+
+```{r pizza-data}
+# Create pizza shop data
+pizza_shop <- tibble(
+  day = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+  pizzas_sold = c(45, 52, 48, 55, 85, 120, 110),
+  revenue = c(450, 520, 480, 550, 850, 1200, 1100),
+  customers = c(30, 35, 32, 37, 55, 75, 70),
+  day_type = c("Weekday", "Weekday", "Weekday", "Weekday", "Weekday", "Weekend", "Weekend")
+)
+
+pizza_shop
+```
+
+## Your Tasks
+
+**Task 1:** Create a bar chart showing pizzas sold each day
+
+```{r task-1}
+# Your code here:
+
+```
+
+**Task 2:** Create a line chart showing revenue over the week
+
+```{r task-2}
+# Your code here:
+
+```
+
+**Task 3:** Create a scatter plot: customers vs pizzas_sold
+
+```{r task-3}
+# Your code here:
+
+```
+
+**Task 4:** Make a bar chart colored by day_type (Weekday/Weekend)
+
+```{r task-4}
+# Your code here:
+
+```
+
+**BONUS Challenge:** Combine all your charts into one display!
+
+```{r task-bonus}
+# Your code here:
+
+```
+
+---
+
+# Chart Type Guide
+
+## When to Use Each Chart
+
+**Bar Charts** 📊
+- Comparing categories
+- Example: Sales by day, Products by type
+- Use `geom_col()`
+
+**Line Charts** 📈
+- Showing trends over time
+- Example: Temperature, Stock prices
+- Use `geom_line()`
+
+**Scatter Plots** 🔵
+- Showing relationships between two numbers
+- Example: Height vs Weight, Price vs Sales
+- Use `geom_point()`
+
+---
+
+# Quick Reference
+
+## Basic Template
+
+```r
+ggplot(data = YOUR_DATA, aes(x = X_COLUMN, y = Y_COLUMN)) +
+  geom_CHART_TYPE() +
+  labs(title = "YOUR TITLE", x = "X LABEL", y = "Y LABEL")
+```
+
+## Common Customizations
+
+```r
+# Colors
+geom_col(fill = "blue")
+geom_point(color = "red")
+
+# Sizes
+geom_line(size = 2)
+geom_point(size = 5)
+
+# Themes
++ theme_minimal()
++ theme_classic()
++ theme_bw()
+
+# Labels
+labs(title = "Title", x = "X axis", y = "Y axis")
+```
+
+---
+
+# Color Names You Can Use
+
+Some easy colors to try:
+- "red", "blue", "green"
+- "pink", "purple", "orange"
+- "lightblue", "darkgreen", "coral"
+- "skyblue", "steelblue", "navy"
+- "gold", "yellow", "lightyellow"
+
+---
+
+# Common Mistakes and Solutions
+
+**Mistake 1:** Forgot the `+` sign
+```r
+# Wrong:
+ggplot(data, aes(x = day, y = sales))
+geom_col()
+
+# Right:
+ggplot(data, aes(x = day, y = sales)) +
+  geom_col()
+```
+
+**Mistake 2:** Line chart not connecting
+```r
+# Add group = 1:
+ggplot(data, aes(x = day, y = sales, group = 1)) +
+  geom_line()
+```
+
+**Mistake 3:** Misspelled column names
+- Check spelling with `colnames(your_data)`
+- R is case-sensitive!
+
+---
+
+# Practice Problems
+
+## Problem 1: Weather Data
+
+```{r practice-weather}
+weather <- tibble(
+  month = c("Jan", "Feb", "Mar", "Apr", "May", "Jun"),
+  avg_temp = c(32, 35, 45, 55, 65, 75),
+  rainfall = c(2.5, 2.0, 3.0, 3.5, 4.0, 3.0)
+)
+
+# Task 1: Bar chart of temperature by month
+# Task 2: Line chart of rainfall
+# Task 3: Scatter plot: temp vs rainfall
+
+# Your code here:
+
+```
+
+## Problem 2: Student Grades
+
+```{r practice-grades}
+grades <- tibble(
+  student = c("Alice", "Bob", "Charlie", "Diana", "Eve"),
+  math = c(85, 92, 78, 95, 88),
+  science = c(90, 85, 82, 98, 91)
+)
+
+# Task 1: Bar chart of math grades
+# Task 2: Scatter plot: math vs science
+# Task 3: Compare both subjects side by side
+
+# Your code here:
+
+```
+
+---
+
+# Congratulations! 🎉
+
+You can now create:
+- ✅ Bar charts
+- ✅ Line charts  
+- ✅ Scatter plots
+- ✅ Colored charts
+- ✅ Combined charts
+- ✅ Saved charts
+
+**Keep practicing and have fun making beautiful visualizations!** 
+
+---
+
+# What's Next?
+
+Want to learn more? Try:
+
+1. **Advanced Chart Types**
+   - Histograms (distribution of data)
+   - Box plots (comparing groups)
+   - Heatmaps (color grids)
+
+2. **Interactive Charts**
+   - Make charts you can click and hover
+   - Use the `plotly` package
+
+3. **Dashboards**
+   - Put multiple charts on a web page
+   - Share with others
+
+---
+
+# Helpful Resources
+
+- [ggplot2 Cheat Sheet](https://github.com/rstudio/cheatsheets/blob/main/data-visualization.pdf)
+- [R Graphics Cookbook](https://r-graphics.org/)
+- [Data to Viz](https://www.data-to-viz.com/) - Which chart to use?
+
+---
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
