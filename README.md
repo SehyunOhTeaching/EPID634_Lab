@@ -30,6 +30,8 @@ All materials include exercises, solutions, and comprehensive projects.
 **Outcome**: Develop fundamental data manipulation skills with hands-on bakery 
 and coffee shop examples
 
+<br>
+
 ### 2. Beginner Data Visualization
 
 **What**: Create professional charts and graphs with ggplot2 
@@ -47,6 +49,8 @@ and coffee shop examples
 - Real-world examples (lemonade stand, pizza shop)      
 
 **Outcome**: Learn essential ggplot2 visualization techniques for effective data communication
+
+<br>
 
 ### 3. Tidyverse Data Wrangling
 
@@ -67,7 +71,7 @@ and coffee shop examples
 
 **Outcome**: Build complete data analysis pipelines
 
----
+<br>
 
 ### 4. ggplot2 Visualization
 
@@ -87,7 +91,7 @@ and coffee shop examples
 
 **Outcome**: Create professional multi-panel dashboards
 
----
+<br>
 
 ### 5. Dashboard Building with R
 
@@ -110,47 +114,21 @@ and coffee shop examples
 
 **Outcome**: Deploy production-ready dashboards
 
-
-
 ---
 
 ## 💻 Quick Start
 
-### Installation
-
-```r
-# Install all packages at once
-install.packages(c(
-  # Core
-  "tidyverse", "lubridate", "scales",
-  
-  # Visualization
-  "plotly", "patchwork", "gganimate",
-  
-  # Dashboard
-  "shiny", "flexdashboard", "DT",
-  
-  # Advanced Viz
-  "igraph", "networkD3", "ggridges", "treemap",
-  
-  # GIS
-  "sf", "tmap", "leaflet", "terra"
-))
-```
-
 ### Getting Started
+1. Clone or download materials
+2. Open RStudio
+3. Choose your learning track
+4. Open the first .Rmd file
+5. Work through exercises
+6. Check solutions
+7. Complete projects
 
-```r
-# 1. Clone or download materials
-# 2. Open RStudio
-# 3. Choose your learning track
-# 4. Open the first .Rmd file
-# 5. Work through exercises
-# 6. Check solutions
-# 7. Complete projects
-```
 
-**How to clone/copy the material:**   
+### How to clone/copy the material  
 In the terminal, under the directory you want to copy this GitHub repository,
 run this code:
 
@@ -161,7 +139,6 @@ All the content in this repository will be copied and available in your computer
 
 
 ---
-
 
 ## 📞 Support Resources
 
